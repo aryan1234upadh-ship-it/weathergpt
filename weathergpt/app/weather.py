@@ -10,19 +10,7 @@ from . import openmeteo
 from .models import db, WeatherCache
 
 CACHE_MINUTES = 120
-RATE_LIMIT_BACKOFF_MINUTES = 15
 logger = logging.getLogger(__name__)
-_rate_limited_until = {}
-
-
-def _fetch_from_api(district, lat=None, lon=None, location_name=None):
-    if lat is None or lon is None:
-        lat, lon = openmeteo.geocode(district)
-    data = openmeteo.parse_forecast(openmeteo.fetch_forecast(lat, lon), district)
-    data["latitude"], data["longitude"] = lat, lon
-    data["location_name"] = location_name or district
-    data["fetched_at"] = datetime.utcnow().isoformat()
-    return data
 
 
 def _mock(district):
@@ -64,6 +52,65 @@ def _with_coordinates(data, district):
     return data
 
 
+def _fetch_openweather(lat, lon, district, location_name=None):
+    """Fetch the forecast from OpenWeather using the configured server-side key."""
+    api_key = os.getenv("OPENWEATHER_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENWEATHER_API_KEY is not set in Render.")
+    response = requests.get(
+        "https://api.openweathermap.org/data/2.5/forecast",
+        params={"lat": lat, "lon": lon, "appid": api_key, "units": "metric"}, timeout=12,
+    )
+    if not response.ok:
+        # OpenWeather includes its API key in the query string; never log the URL.
+        raise RuntimeError(f"OpenWeather backup returned HTTP {response.status_code}.")
+    entries = response.json().get("list") or []
+    if not entries:
+        raise RuntimeError("OpenWeather backup returned no forecast data.")
+
+    tz = ZoneInfo("Asia/Kolkata")
+    now = datetime.now(tz)
+    today = now.date().isoformat()
+    daily, rain_24h, rain_5d, chances = {}, 0.0, 0.0, []
+    current = None
+    for item in entries:
+        local_time = datetime.fromtimestamp(int(item["dt"]), tz=tz)
+        rain = float((item.get("rain") or {}).get("3h") or 0.0)
+        chance = round(float(item.get("pop") or 0) * 100)
+        rain_5d += rain
+        day = local_time.date().isoformat()
+        values = daily.setdefault(day, {"mins": [], "maxes": [], "chance": 0})
+        values["mins"].append(float(item["main"]["temp_min"]))
+        values["maxes"].append(float(item["main"]["temp_max"]))
+        values["chance"] = max(values["chance"], chance)
+        if current is None and local_time >= now:
+            current = item
+        if local_time >= now and (local_time - now).total_seconds() < 24 * 60 * 60:
+            rain_24h += rain
+            chances.append({"time": local_time.isoformat(timespec="minutes"), "probability": chance})
+    current = current or entries[0]
+    temps_min = [v for d in daily.values() for v in d["mins"]]
+    temps_max = [v for d in daily.values() for v in d["maxes"]]
+    description = (current.get("weather") or [{}])[0].get("description", "unknown")
+    wind = current.get("wind") or {}
+    return {
+        "district": district, "latitude": lat, "longitude": lon,
+        "location_name": location_name or district,
+        "temp": round(float(current["main"]["temp"]), 1),
+        "humidity": round(float(current["main"].get("humidity", 0))),
+        "description": description,
+        "wind_kmh": round(float(wind.get("speed", 0)) * 3.6, 1),
+        "temp_max_5d": round(max(temps_max), 1) if temps_max else 0.0,
+        "temp_min_5d": round(min(temps_min), 1) if temps_min else 0.0,
+        "rain_24h": round(rain_24h, 1),
+        "rain_probability_today": daily.get(today, {}).get("chance"),
+        "rain_probability_by_hour": chances,
+        "rain_5d": round(rain_5d, 1),
+        "wind_max_kmh": round(max(float((e.get("wind") or {}).get("gust", (e.get("wind") or {}).get("speed", 0))) for e in entries) * 3.6, 1),
+        "source": "openweather",
+    }
+
+
 def get_weather(district, lat=None, lon=None, location_name=None):
     district = district.strip().title()
     cache_key = district if lat is None or lon is None else f"{district}:{lat:.4f},{lon:.4f}"
@@ -75,18 +122,6 @@ def get_weather(district, lat=None, lon=None, location_name=None):
         return data
 
     row = db.session.get(WeatherCache, cache_key)
-    now = datetime.utcnow()
-    retry_after = _rate_limited_until.get(cache_key)
-    if retry_after and now < retry_after:
-        if row:
-            data = _with_coordinates(json.loads(row.data_json), district)
-            if lat is not None and lon is not None:
-                data["latitude"], data["longitude"] = lat, lon
-            data["location_name"] = location_name or data.get("location_name") or district
-            data["cached"] = True
-            data["stale"] = True
-            return data
-        raise RuntimeError("Open-Meteo is rate-limiting requests. Please try again in a few minutes.")
     if row and datetime.utcnow() - row.cached_at < timedelta(minutes=CACHE_MINUTES):
         data = json.loads(row.data_json)
         # Refresh older cache entries once so newly added forecast fields arrive.
@@ -100,11 +135,12 @@ def get_weather(district, lat=None, lon=None, location_name=None):
             return data
 
     try:
-        data = _fetch_from_api(district, lat, lon, location_name)
-    except requests.RequestException as exc:
-        logger.warning("Open-Meteo failed for %s: %s", district, exc)
-        if getattr(getattr(exc, "response", None), "status_code", None) == 429:
-            _rate_limited_until[cache_key] = datetime.utcnow() + timedelta(minutes=RATE_LIMIT_BACKOFF_MINUTES)
+        if lat is None or lon is None:
+            lat, lon = openmeteo.geocode(district)
+        data = _fetch_openweather(lat, lon, district, location_name)
+    except (requests.RequestException, RuntimeError, ValueError, KeyError) as exc:
+        # Request exception text can contain the OpenWeather URL, including its API key.
+        logger.warning("OpenWeather failed for %s (%s)", district, type(exc).__name__)
         if row:
             data = _with_coordinates(json.loads(row.data_json), district)
             if lat is not None and lon is not None:
@@ -113,6 +149,8 @@ def get_weather(district, lat=None, lon=None, location_name=None):
             data["cached"] = True
             data["stale"] = True
             return data
+        if isinstance(exc, requests.RequestException):
+            raise RuntimeError("OpenWeather is unavailable. Check the key and try again later.") from exc
         raise
 
     payload = json.dumps(data)
