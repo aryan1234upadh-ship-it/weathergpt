@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -9,6 +10,7 @@ from . import openmeteo
 from .models import db, WeatherCache
 
 CACHE_MINUTES = 30
+logger = logging.getLogger(__name__)
 
 
 def _fetch_from_api(district, lat=None, lon=None, location_name=None):
@@ -85,12 +87,17 @@ def get_weather(district, lat=None, lon=None, location_name=None):
 
     try:
         data = _fetch_from_api(district, lat, lon, location_name)
-    except requests.ConnectionError:
-        if row and (lat is None or lon is None):  # no internet: serve old data
+    except requests.RequestException as exc:
+        if row:
             data = _with_coordinates(json.loads(row.data_json), district)
+            if lat is not None and lon is not None:
+                data["latitude"], data["longitude"] = lat, lon
+            data["location_name"] = location_name or data.get("location_name") or district
             data["cached"] = True
             data["stale"] = True
+            logger.warning("Weather provider failed for %s; serving stale cache: %s", district, exc)
             return data
+        logger.exception("Weather provider request failed for %s", district)
         raise
 
     payload = json.dumps(data)
