@@ -35,7 +35,6 @@ In Render, choose **New → Blueprint**, connect the GitHub repository, and sele
 
 - `DATABASE_URL`: the Neon pooled PostgreSQL connection string
 - `AI_API_KEY`: the Groq API key
-- `OPENWEATHER_API_KEY`: the OpenWeather key
 
 Render generates `SECRET_KEY` automatically. The service is configured to use one Gunicorn worker and the free plan.
 
