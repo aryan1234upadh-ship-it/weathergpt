@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#143a25"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>WeatherGPT - Smart farming assistant</title>
+<link rel="manifest" href="/static/manifest.webmanifest"/>
+<link rel="icon" href="/static/icons/app-icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="/static/icons/app-icon.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="vendor/maplibre-gl.css"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- ============ LOGIN / REGISTER ============ -->
+<div id="auth" class="auth">
+  <section class="auth-hero">
+    <div class="brand"><span class="logo" aria-hidden="true">&#127806;</span> WeatherGPT</div>
+    <div class="auth-copy">
+      <h1 data-i="app_tag">Know the weather before it reaches your field.</h1>
+      <p data-i="hero_sub">Live forecasts, soil health and crop advice for your district, in your own language.</p>
+    </div>
+    <div class="sun" aria-hidden="true"></div>
+    <div class="furrows" aria-hidden="true"></div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-top"><select class="langsel" aria-label="Language"></select></div>
+    <div class="auth-box">
+      <div class="seg" role="tablist">
+        <button id="mode-login" class="on" data-i="login">Log in</button>
+        <button id="mode-register" data-i="register_tab">Register</button>
+      </div>
+
+      <div id="login-pane">
+        <label for="lphone" data-i="phone">Phone number</label>
+        <input id="lphone" inputmode="numeric" maxlength="10" autocomplete="tel"/>
+        <button id="lreq" class="primary" data-i="sendotp">Send OTP</button>
+        <div id="otpbox" class="hidden">
+          <label for="lotp" data-i="otp">OTP</label>
+          <input id="lotp" inputmode="numeric" maxlength="6" autocomplete="one-time-code"/>
+          <button id="lver" class="primary" data-i="verify">Verify and log in</button>
+          <button id="fillotp" class="link hidden" type="button"></button>
+        </div>
+        <p id="lerr" class="msg err" role="alert"></p>
+      </div>
+
+      <div id="register-pane" class="hidden">
+        <label for="rname" data-i="name">Name</label>
+        <input id="rname" autocomplete="name"/>
+        <label for="rphone" data-i="phone">Phone number</label>
+        <input id="rphone" inputmode="numeric" maxlength="10" autocomplete="tel"/>
+        <div class="two">
+          <div><label for="rstate" data-i="state">State</label><input id="rstate"/></div>
+          <div><label for="rdistrict" data-i="district">District</label><input id="rdistrict"/></div>
+        </div>
+        <button id="rbtn" class="primary" data-i="register_btn">Create account</button>
+        <p id="rmsg" class="msg" role="alert"></p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="shell" class="shell hidden">
+  <aside class="side">
+    <div class="brand light"><span class="logo" aria-hidden="true">&#127806;</span> WeatherGPT</div>
+    <nav id="nav" aria-label="Main">
+      <a href="#home" data-view="home">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i="nav_home">Home</span></a>
+      <a href="#chat" data-view="chat">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/></svg>
+        <span data-i="nav_chat">Chat</span></a>
+      <a href="#crops" data-view="crops">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-7 8-7 0 5-3 8-8 8z"/><path d="M12 15c0-3-2-5-6-5 0 4 2 6 6 5z"/></svg>
+        <span data-i="nav_crops">Crops</span></a>
+      <a href="#soil" data-view="soil">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5z"/><path d="m3 13 9 5 9-5"/></svg>
+        <span data-i="nav_soil">Soil</span></a>
+      <a href="#map" data-view="map">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>
+        <span data-i="nav_map">Map</span></a>
+      <a href="#alerts" data-view="alerts">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>
+        <span data-i="nav_alerts">Alerts</span><i id="alert-dot" class="dot hidden"></i></a>
+    </nav>
+    <div class="side-foot">
+      <div id="me-mini" class="me-mini"></div>
+      <button id="logout" class="link" data-i="logout">Log out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <h2 id="title"></h2>
+      <div class="top-tools">
+        <form id="location-form" class="location-search" role="search">
+          <input id="location-in" type="search" maxlength="100" placeholder="Village, district or PIN code" aria-label="Search village, district or PIN code" autocomplete="off" aria-controls="location-results" aria-expanded="false"/>
+          <button id="location-go" class="primary" type="submit">Search</button>
+          <div id="location-results" class="location-results hidden" role="listbox" aria-label="Location search results"></div>
+        </form>
+        <select id="lang" class="langsel" aria-label="Language"></select>
+        <button id="install-app" class="install-app hidden" type="button" data-i="install_app">Install app</button>
+      </div>
+    </header>
+    <p id="location-msg" class="location-msg" role="status" aria-live="polite"></p>
+
+    <main>
+      <!-- HOME -->
+      <section id="v-home" class="view">
+        <div class="home-overview">
+          <article id="c-weather" class="hero sky-clear"></article>
+          <article id="home-map-card" class="card home-map-card hidden">
+            <h3 id="home-map-title">Location</h3>
+            <div class="farm-map-tools">
+              <span class="farm-map-key"><i></i>Mapped farm areas</span>
+              <button id="home-fields-toggle" type="button" aria-pressed="true">Hide field areas</button>
+            </div>
+            <div id="home-map" aria-label="Interactive map with selected village and mapped agricultural areas"></div>
+            <p id="home-map-note" class="sub">Field outlines appear where they are mapped in OpenStreetMap.</p>
+          </article>
+        </div>
+        <article id="rain-hourly-card" class="card rain-hourly-card hidden">
+          <h3 id="rain-hourly-title">Rain chance by hour</h3>
+          <div id="rain-hourly" class="rain-hourly" role="img" aria-label="Hourly precipitation probability for the next 24 hours"></div>
+        </article>
+
+        <div class="askbar">
+          <input id="askin" maxlength="500" data-p="ph_msg" aria-label="Ask WeatherGPT"/>
+          <button id="askgo" class="primary" data-i="ask">Ask</button>
+        </div>
+        <div id="chips" class="chips"></div>
+
+        <article class="card crop-fields-card">
+          <div class="crop-fields-heading">
+            <h3 data-i="field_crops_title">Crops at this location</h3>
+            <span id="crop-fields-location" class="sub"></span>
+          </div>
+          <form id="crop-field-form" class="crop-field-form">
+            <div><label for="crop-field-name" data-i="crop_name_label">Crop name</label><input id="crop-field-name" maxlength="60" required data-p="crop_name_placeholder" placeholder="e.g. Wheat"/></div>
+            <div><label for="crop-field-area" data-i="crop_area_label">Planted area</label><input id="crop-field-area" type="number" min="0.01" step="0.01" required inputmode="decimal" placeholder="0.00"/></div>
+            <div><label for="crop-field-unit" data-i="crop_area_unit">Area unit</label><select id="crop-field-unit"><option value="acres" data-i="area_acres">Acres</option><option value="hectares" data-i="area_hectares">Hectares</option></select></div>
+            <button id="crop-field-save" class="primary" type="submit" data-i="save_crop_field">Save crop</button>
+          </form>
+          <p id="crop-field-msg" class="crop-field-msg" role="status" aria-live="polite"></p>
+          <div id="crop-field-list" class="crop-field-list"></div>
+        </article>
+
+        <div class="cols">
+          <article id="c-crop" class="card"></article>
+          <article id="c-soil" class="card"></article>
+        </div>
+        <article id="c-alerts" class="card"></article>
+      </section>
+
+      <!-- CHAT -->
+      <section id="v-chat" class="view hidden">
+        <div class="chat card">
+          <div id="msgs" class="msgs" aria-live="polite"></div>
+          <div class="chat-in">
+            <input id="msg" maxlength="500" data-p="ph_msg" aria-label="Message"/>
+            <button id="voice-input" class="voice-btn" type="button" aria-label="Speak your message" title="Speak your message">🎙️</button>
+            <button id="voice-output" class="voice-btn" type="button" aria-label="Turn spoken replies on" title="Turn spoken replies on" aria-pressed="false">🔊</button>
+            <button id="send" class="primary" data-i="send">Send</button>
+          </div>
+          <p id="voice-status" class="voice-status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <!-- CROPS -->
+      <section id="v-crops" class="view hidden">
+        <div class="searchbar">
+          <input id="q" data-p="ph_crop" aria-label="Crop name"/>
+          <button id="qbtn" class="primary" data-i="search">Search</button>
+        </div>
+        <div id="cropout"></div>
+      </section>
+
+      <!-- SOIL -->
+      <section id="v-soil" class="view hidden"><article id="soilfull" class="card"></article></section>
+
+      <!-- MAP -->
+      <section id="v-map" class="view hidden">
+        <div class="mapwrap">
+          <div class="soil-map-stage">
+            <div id="map" aria-label="Interactive map showing district soil and mapped farm areas"></div>
+            <div class="farm-map-overlay">
+              <span class="farm-map-key"><i></i>Mapped farm areas</span>
+              <button id="soil-fields-toggle" type="button" aria-pressed="true">Hide field areas</button>
+            </div>
+          </div>
+          <aside id="mapcard" class="card"></aside>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section id="v-alerts" class="view hidden"><article id="alertlist" class="card"></article></section>
+    </main>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "id": "/static/index.html",
+  "name": "WeatherGPT - Smart farming assistant",
+  "short_name": "WeatherGPT",
+  "description": "Local weather, crop advice, field maps, and farming chat in your language.",
+  "start_url": "/static/index.html",
+  "scope": "/static/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef2ee",
+  "theme_color": "#143a25",
+  "icons": [
+    {
+      "src": "/static/icons/app-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

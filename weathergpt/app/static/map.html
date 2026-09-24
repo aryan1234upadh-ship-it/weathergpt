@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WeatherGPT - Soil Health Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  body { margin:0; display:flex; height:100vh; font-family:system-ui,sans-serif; }
+  #map { flex:1; }
+  #card { width:320px; padding:16px; overflow:auto; border-left:1px solid #ddd; background:#fff; }
+  #card h2 { margin:0 0 8px; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:99px; color:#fff; font-size:13px; }
+  .row { margin:10px 0; padding-bottom:8px; border-bottom:1px solid #eee; }
+  .row small { display:block; color:#666; }
+  .key span { display:inline-block; width:12px; height:12px; margin:0 4px 0 10px; border-radius:2px; }
+  @media (max-width:700px) { body { flex-direction:column; } #card { width:auto; height:40%; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="card">
+  <h2>Soil Health Map</h2>
+  <p>Click a district to see its Soil Health Card.</p>
+  <div class="key">
+    <span style="background:#2e9e5b"></span>Good
+    <span style="background:#f0b429"></span>Moderate
+    <span style="background:#d64545"></span>Poor
+    <span style="background:#c9ced3"></span>No data
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const FILES = ["data/bihar.geojson"];   // add more files here later
+const NAME_KEYS = ["district","DISTRICT","dtname","DT_NAME","NAME_2","dist_name","district_name","name","NAME"];
+const COLORS = { Good:"#2e9e5b", Moderate:"#f0b429", Poor:"#d64545" };
+const NONE = "#c9ced3";
+const LABELS = { ph:"pH", n:"Nitrogen (N)", p:"Phosphorus (P)", k:"Potassium (K)", moisture:"Moisture" };
+
+const map = L.map("map").setView([22.5, 80], 5);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18, attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map);
+
+const norm = s => String(s || "").trim().toLowerCase();
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const nameOf = f => { for (const k of NAME_KEYS) if (f.properties && f.properties[k]) return f.properties[k]; return ""; };
+
+async function showCard(name) {
+  const el = document.getElementById("card");
+  const r = await fetch("/api/soil/" + encodeURIComponent(name));
+  if (!r.ok) { el.innerHTML = "<h2>" + esc(name) + "</h2><p>No soil data for this district yet.</p>"; return; }
+  const c = await r.json();
+  let html = "<h2>" + esc(c.district) + "</h2>" +
+    '<span class="badge" style="background:' + (COLORS[c.rating] || NONE) + '">' + esc(c.rating) + "</span>" +
+    " <small>" + c.score + "/" + c.max_score + " · source: " + esc(c.source) + "</small>";
+  for (const [key, v] of Object.entries(c.readings)) {
+    html += '<div class="row"><b>' + LABELS[key] + ": " + v.value + "</b> (" + esc(v.level) + ")<small>" + esc(v.tip) + "</small></div>";
+  }
+  if (c.suitable_crops && c.suitable_crops.length)
+    html += "<p><b>Suited crops:</b> " + c.suitable_crops.map(esc).join(", ") + "</p>";
+  el.innerHTML = html;
+}
+
+async function init() {
+  const soil = await (await fetch("/api/soil")).json();
+  const rating = {};
+  soil.forEach(s => rating[norm(s.district)] = s.rating);
+
+  const group = L.featureGroup();
+  let matched = 0, total = 0;
+  for (const file of FILES) {
+    try {
+      const gj = await (await fetch(file)).json();
+      L.geoJSON(gj, {
+        style: f => ({ color:"#555", weight:1, fillOpacity:0.7,
+                       fillColor: COLORS[rating[norm(nameOf(f))]] || NONE }),
+        onEachFeature: (f, layer) => {
+          const n = nameOf(f);
+          total++;
+          if (rating[norm(n)]) matched++;
+          layer.bindTooltip(n + " - " + (rating[norm(n)] || "no data"));
+          layer.on("click", () => showCard(n));
+        }
+      }).addTo(group);
+    } catch (e) { console.warn("Could not load", file, e); }
+  }
+  group.addTo(map);
+  if (group.getLayers().length) map.fitBounds(group.getBounds());
+  if (total && !matched) {
+    document.getElementById("card").insertAdjacentHTML("beforeend",
+      "<p style='color:#b00'>No district names matched. Check the name property in your GeoJSON (see NAME_KEYS).</p>");
+  }
+}
+init();
+</script>
+</body>
+</html>

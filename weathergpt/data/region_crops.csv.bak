@@ -1,0 +1,413 @@
+region,state,crop,t_min,t_max,rain_min,ph_min,ph_max,irrigation,tips
+North,Punjab,Wheat,10,25,30,6.0,7.5,Irrigate at crown root; tillering and flowering,Sow in November; avoid heavy rain near harvest
+East,Bihar,Wheat,10,25,30,6.0,7.5,Irrigate at crown root; tillering and flowering,Use timely sowing varieties
+East,Bihar,Rice (Paddy),20,35,100,5.5,7.0,Keep about 5 cm standing water,Transplant seedlings after monsoon onset
+West,Maharashtra,Cotton,21,35,50,6.0,8.0,Irrigate at flowering and boll formation,Avoid waterlogging
+South,Tamil Nadu,Sugarcane,20,35,60,6.5,7.5,Regular irrigation every 7-10 days,Plant healthy setts in rows
+North,Uttar Pradesh,Maize,18,32,50,5.5,7.5,Irrigate at knee-high and tasseling,Ensure good drainageconst fs = require("fs");
+const {
+  Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, LevelFormat, PageOrientation,
+  Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, Footer, PageNumber
+} = require("docx");
+
+const FONT = { ascii: "Nirmala UI", hAnsi: "Nirmala UI", cs: "Nirmala UI", eastAsia: "Nirmala UI" };
+const GREEN = "1F5D3A", GREY = "5B6B62", AMBER = "FFF4D6", LIGHT = "E4EDE6";
+const PAGE_W = 16838, MARGIN = 1000, CONTENT = PAGE_W - 2 * MARGIN;   // landscape A4
+
+const run = (text, o = {}) => new TextRun({ text, font: FONT, size: 20, ...o, boldComplexScript: !!o.bold });
+const b = (text, o = {}) => run(text, { bold: true, ...o });
+const para = (runs, o = {}) => new Paragraph({ spacing: { after: 100, line: 276 }, ...o, children: [].concat(runs) });
+const p = (text) => para(run(text));
+const h1 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 300, after: 120 }, keepNext: true,
+  children: [new TextRun({ text, font: FONT, bold: true, boldComplexScript: true })] });
+const h2 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 }, keepNext: true,
+  children: [new TextRun({ text, font: FONT, bold: true, boldComplexScript: true })] });
+const bullet = (runs) => new Paragraph({ numbering: { reference: "bullets", level: 0 }, spacing: { after: 70, line: 270 }, children: [].concat(runs) });
+const bl = (text) => bullet(run(text));
+
+const line = { style: BorderStyle.SINGLE, size: 4, color: "D8E1DA" };
+const borders = { top: line, bottom: line, left: line, right: line };
+
+function cell(width, content, fill, boldText) {
+  const items = [].concat(content);
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA }, borders,
+    margins: { top: 60, bottom: 60, left: 100, right: 100 },
+    shading: fill ? { fill, type: ShadingType.CLEAR, color: "auto" } : undefined,
+    children: items.map(t => new Paragraph({ spacing: { after: 30, line: 250 },
+      children: [run(String(t), { size: 17, bold: !!boldText })] }))
+  });
+}
+function table(headers, widths, rows) {
+  const total = widths.reduce((a, c) => a + c, 0);
+  if (total !== CONTENT) throw new Error("widths sum " + total + " != " + CONTENT + " for " + headers[0]);
+  return new Table({
+    width: { size: total, type: WidthType.DXA }, columnWidths: widths,
+    rows: [
+      new TableRow({ tableHeader: true, cantSplit: true, children: headers.map((h, i) => cell(widths[i], h, LIGHT, true)) }),
+      ...rows.map(r => new TableRow({ cantSplit: true, children: r.map((c, i) => cell(widths[i], c)) }))
+    ]
+  });
+}
+const gap = () => new Paragraph({ spacing: { after: 60 }, children: [] });
+const note = (text) => new Paragraph({ spacing: { before: 60, after: 120 }, shading: { fill: AMBER, type: ShadingType.CLEAR, color: "auto" },
+  border: { left: { style: BorderStyle.SINGLE, size: 18, color: "E8A317", space: 6 } }, children: [run(text, { size: 19 })] });
+
+const W5 = [2300, 1500, 4200, 2300, 4538];        // Parameter | Unit | Source | Level | DB field/format
+const H5 = ["Parameter", "Unit", "Reliable source", "Geographic level", "DB field / format"];
+
+const kids = [];
+const add = (...x) => kids.push(...x);
+
+/* ---------- Title ---------- */
+add(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "Agriculture Data Collection Guide", font: FONT, size: 48, bold: true, boldComplexScript: true, color: GREEN })] }));
+add(new Paragraph({ spacing: { after: 200 }, border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: GREEN, space: 6 } },
+  children: [run("Team research checklist, source list and database design  |  WeatherGPT (SIH)  |  20 September 2026", { color: GREY })] }));
+
+/* ---------- 0. Summary ---------- */
+add(h1("0. सबसे पहले: सीधा जवाब"));
+add(para([b("सवाल 1: क्या team को data research करके collect करना होगा?  "), run("हाँ। Authentic और region-specific data का सही तरीका यही है कि team official sources (SHC portal, ICAR/SAU, IMD, DES, CGWB आदि) से data निकाले, उसे verify करे और source के साथ database में डाले।")]));
+add(para([b("सवाल 2: क्या Claude पूरा database बना कर दे सकता है?  "), run("नहीं, और यह suggest भी नहीं किया जाता। अगर मैं memory से soil, crop या region के numbers लिखूँ तो वही AI-assumption होगा जिससे आप बचना चाहते हैं: वह गलत, पुराना या किसी दूसरे region का हो सकता है।")]));
+add(para(b("Claude क्या कर सकता है:")));
+add(bl("Schema और checklist (यह document) और CSV/Excel templates।"));
+add(bl("Import और validation code: unit check, range check (जैसे pH 3 से 10), duplicate और missing-value check।"));
+add(bl("आपकी team का collected data साफ करके database में डालना, और उसे web app से जोड़ना।"));
+add(bl("App का rules engine, जो सिर्फ database के sourced data पर चले और जहाँ data नहीं है वहाँ साफ लिखे \"data उपलब्ध नहीं\"।"));
+add(h2("Data collection के 7 नियम"));
+add(bl("हर row के साथ source: संस्था, dataset का नाम, URL, data का साल, कब access किया (section 13)।"));
+add(bl("कोई value अंदाज़े से नहीं। जो नहीं मिला उसे खाली (NULL) छोड़ो। जो गणना से निकाला उसे status = derived या estimated लिखो।"));
+add(bl("Units fix रखो (हर table में unit column या parameter table में unit)।"));
+add(bl("District/block की पहचान के लिए LGD code इस्तेमाल करो, सिर्फ नाम नहीं (नाम की spelling अलग-अलग होती है)।"));
+add(bl("Data का साल (data_year) हमेशा लिखो। पुराना data भी चलेगा, पर साल दिखना चाहिए।"));
+add(bl("Random websites से नहीं। सिर्फ official/credible sources (section 11)। जो source मैंने खुद जाँचा वह \"Checked\" लिखा है, बाकी को team verify करेगी।"));
+add(bl("पहले pilot: कम states और कम crops में पूरा और verified data, फिर बढ़ाओ। सुझाव: 3 states (जैसे Bihar, Punjab, Maharashtra) × 5 major crops।"));
+add(note("इस हफ़्ते का deadline देखते हुए: 600 अंदाज़े वाली rows से 60 verified rows बेहतर हैं। Judges source और reliability देखते हैं।"));
+
+/* ---------- 1. Static vs live ---------- */
+add(h1("1. Static vs Live data (एक नज़र में)"));
+add(table(["Data", "Static database में रखें", "API / Live से लें", "Update frequency", "Source"],
+  [3300, 1700, 2300, 2300, 5238], [
+  ["District/block master, LGD codes, lat/lon", "हाँ", "नहीं", "कभी-कभी (साल में एक बार जाँचें)", "LGD (lgdirectory.gov.in), Survey of India/Census"],
+  ["District boundaries (GeoJSON)", "हाँ (file)", "नहीं", "कभी-कभी", "Official boundary file (Survey of India स्रोत वाली)"],
+  ["Soil type, classification, texture, drainage", "हाँ", "नहीं", "सालों में", "ICAR-NBSS&LUP soil maps/reports"],
+  ["Soil nutrients (pH, EC, OC, N, P, K, micronutrients)", "हाँ (साल के snapshot)", "नहीं (portal पर dashboard है, API confirm नहीं)", "SHC cycle के हिसाब से (team verify)", "Soil Health Card portal (soilhealth.dac.gov.in), state soil labs"],
+  ["Soil modelled estimates (pH, OC, texture)", "cache करके", "SoilGrids (अभी paused)", "static", "ISRIC SoilGrids (Checked: REST API paused)"],
+  ["Crop requirements, calendar, fertilizer doses", "हाँ", "नहीं", "साल में एक बार review", "ICAR/SAU/State Agriculture Dept package of practices"],
+  ["Crop area, production, yield (district)", "हाँ", "data.gov.in (dataset पर निर्भर)", "सालाना", "DES, Ministry of Agriculture & Farmers Welfare"],
+  ["Mandi prices", "आखिरी price cache", "हाँ", "रोज़", "Agmarknet via data.gov.in (Checked: API, free key)"],
+  ["Weather forecast, current weather", "नहीं", "हाँ", "हर घंटे", "Open-Meteo (Checked: app में चल रहा), IMD"],
+  ["Historical rainfall/temperature, normals", "हाँ", "archive API से भी", "सालाना", "IMD normals/gridded data; Open-Meteo historical API; NASA POWER"],
+  ["Extreme weather warnings", "नहीं (thresholds हाँ)", "हाँ", "दिन में कई बार", "IMD warnings; thresholds IMD definitions से"],
+  ["Groundwater level/status", "हाँ", "नहीं", "साल/season में", "CGWB, India-WRIS"],
+  ["Irrigation sources, tube-well/canal", "हाँ", "नहीं", "सालों में (census)", "Minor Irrigation Census, DES land-use statistics"],
+  ["Pest/disease info, advisories", "हाँ (info)", "state alerts (अगर उपलब्ध)", "season के हिसाब से", "NCIPM, ICAR, SAU, State Agriculture Dept"]
+]));
+
+/* ---------- 2. Soil ---------- */
+add(h1("2. SOIL DATA (Member: Soil)"));
+add(table(H5, W5, [
+  ["Soil type / group (alluvial, black, red, laterite आदि)", "text + code", "ICAR-NBSS&LUP soil maps और district soil reports", "District (कुछ states में block)", "soil_types.name (lookup table) + region_soil.area_pct"],
+  ["Soil classification (Soil Taxonomy order / WRB)", "code", "ICAR-NBSS&LUP", "District / agro-ecological region", "soil_types.taxonomy_order"],
+  ["Soil pH", "pH (1:2.5 soil:water)", "Soil Health Card portal, state soil-testing labs", "Village / block / district", "soil_measurements (parameter = ph), numeric(3,1)"],
+  ["Salinity / EC", "dS/m", "Soil Health Card portal, state labs", "Village / block / district", "parameter = ec"],
+  ["Organic carbon", "%", "Soil Health Card portal", "District / block", "parameter = oc"],
+  ["Available nitrogen (N)", "kg/ha", "Soil Health Card portal", "District / block", "parameter = n + rating (Low/Medium/High)"],
+  ["Available phosphorus (P)", "kg/ha", "Soil Health Card portal", "District / block", "parameter = p + rating"],
+  ["Available potassium (K)", "kg/ha", "Soil Health Card portal", "District / block", "parameter = k + rating"],
+  ["Micronutrients (Zn, Fe, Cu, Mn, B) और Sulphur (S)", "mg/kg (ppm)", "Soil Health Card portal", "District / block", "एक row हर parameter के लिए (long format)"],
+  ["Texture (sand, silt, clay)", "% हर एक", "ICAR-NBSS&LUP, state soil labs (SoilGrids अभी paused)", "District / soil map unit", "soil_types.texture_class + sand_pct, silt_pct, clay_pct"],
+  ["Water holding capacity", "mm/m या % volume", "कम published है। Soil survey report में मिले तो लो", "Soil type", "whc + method (measured / estimated)"],
+  ["Drainage class", "well / moderate / poor", "ICAR-NBSS&LUP soil survey reports", "Soil type / district", "soil_types.drainage_class"],
+  ["Soil moisture (अभी की)", "% volume", "Live: weather-model soil moisture (Open-Meteo hourly soil_moisture variables)", "Lat/lon", "store नहीं करते, live लेते हैं"],
+  ["Fertility rating", "Low / Medium / High", "SHC के official cut-offs से निकालें (derived)", "District / block", "rating + status = derived"],
+  ["Suitable crops for the soil", "list", "ICAR/SAU recommendations, cross-check: FAO GAEZ", "Agro-climatic zone", "soil_crop_compatibility (section 6)"],
+  ["Extra: CEC, soil depth, slope, erosion, lime/gypsum requirement", "जो unit source में हो", "NBSS&LUP, state soil labs", "जहाँ मिले", "अलग parameters, सिर्फ जब source मिले"]
+]));
+
+/* ---------- 3. Regional ---------- */
+add(h1("3. REGIONAL / GEOGRAPHICAL DATA (Member: Regions and GIS)"));
+add(table(H5, W5, [
+  ["State, district, block का नाम और LGD code", "text / code", "LGD (Local Government Directory)", "State → village", "regions.lgd_code, name, name_hi, level, parent_id"],
+  ["Latitude / longitude (centroid)", "decimal degrees", "Official boundary file से centroid, वरना Open-Meteo geocoding (source लिखें)", "District / block", "regions.lat, lon"],
+  ["Boundary polygon", "GeoJSON", "Official boundary files (Survey of India पर आधारित)", "District / state", "file + regions.boundary_file"],
+  ["Agro-climatic zone और agro-ecological region", "zone name/code", "ICAR (NARP zones), ICAR-NBSS&LUP (AER)", "District", "regions.agro_zone_id, aer_id"],
+  ["Soil distribution (कौन सी soil कितने % में)", "% area", "ICAR-NBSS&LUP", "District", "region_soil.area_pct"],
+  ["Agricultural land: net sown area, cropping intensity", "ha, %", "DES land-use statistics", "District", "region_land table"],
+  ["Irrigated area और उसके sources (canal, tube-well, tank)", "ha, %", "DES, Minor Irrigation Census", "District", "irrigation_region"],
+  ["Groundwater level और extraction stage", "m below ground, %", "CGWB", "Block / district", "groundwater"],
+  ["Rivers, canals, reservoirs", "GIS layers", "India-WRIS", "District", "GIS layer files (DB में सिर्फ नाम/distance)"],
+  ["Rainfall normal (सालाना)", "mm", "IMD", "District", "weather_normals"]
+]));
+
+/* ---------- 4. Weather ---------- */
+add(h1("4. WEATHER / CLIMATE DATA (Member: Climate)"));
+add(table(["Parameter", "Unit", "Static / Live", "Source", "Note"], [2600, 1400, 2400, 4300, 4138], [
+  ["Temperature (min, max, mean)", "°C", "Live + normals static", "Open-Meteo (live), IMD normals", "Crop stress thresholds अलग table में (section 7)"],
+  ["Rainfall (daily)", "mm", "Live + history static", "Open-Meteo, IMD gridded, NASA POWER", "24h और 5-day totals app में पहले से हैं"],
+  ["Relative humidity", "%", "Live", "Open-Meteo", "Disease-risk rules में काम आता है"],
+  ["Wind speed, gusts, direction", "km/h, degrees", "Live", "Open-Meteo", "Spray decision और lodging risk"],
+  ["Sunshine hours, solar radiation", "hours, MJ/m²", "History static, forecast live", "NASA POWER, Open-Meteo", "Crop growth models के लिए (optional)"],
+  ["Reference evapotranspiration (ET0)", "mm/day", "Live (daily forecast variable)", "Open-Meteo (et0_fao_evapotranspiration)", "Crop water need = Kc × ET0 (section 8)"],
+  ["Forecast", "—", "Live", "Open-Meteo, IMD", "Cache 30 मिनट (app में चल रहा)"],
+  ["Historical rainfall और seasonal patterns", "mm/month", "Static", "IMD, NASA POWER, Open-Meteo historical API", "period column लिखें (जैसे 1991-2020)"],
+  ["Monsoon onset/withdrawal dates", "date", "Static", "IMD", "Sowing window decide करने में"],
+  ["Extreme events: heat wave, cold wave, heavy rain, thunderstorm", "IMD definitions", "Thresholds static, warnings live", "IMD", "app के alert thresholds को IMD definitions से match करें"],
+  ["Frost days, growing degree days", "count, °C-days", "Derived", "ऊपर के data से निकालें", "status = derived"]
+]));
+
+/* ---------- 5. Crop ---------- */
+add(h1("5. CROP DATA (Member: Crops)"));
+add(table(["Field", "Unit / format", "Reliable source", "Level", "DB field"], [2800, 2000, 4300, 2300, 3438], [
+  ["Crop name (English, Hindi, local), scientific name, category", "text", "ICAR/SAU crop pages", "National", "crops.*"],
+  ["Growing season (Kharif / Rabi / Zaid)", "text", "State Agriculture Dept, SAU package of practices", "State / zone", "crop_requirements.season"],
+  ["Crop duration", "days", "SAU package of practices (variety-wise)", "State / zone", "duration_days_min, max"],
+  ["Suitable soil, texture, drainage preference", "text", "ICAR/SAU", "Zone", "soil_pref, drainage_pref"],
+  ["Suitable pH range", "pH min, max", "ICAR/SAU", "Zone", "ph_min, ph_max"],
+  ["Temperature requirement (min, optimum, max)", "°C", "ICAR/SAU (stage-wise बेहतर)", "Zone", "temp_min, opt_min, opt_max, max"],
+  ["Rainfall / total water requirement", "mm per season", "ICAR/SAU, state PoP", "Zone", "rain_min, rain_max, water_req_mm"],
+  ["Irrigation requirement (number, critical stages)", "count + text", "SAU package of practices", "Zone", "irrigation_practice"],
+  ["Sowing window और harvest window", "date range", "State PoP / KVK calendars", "State / zone", "sowing_start, sowing_end, harvest_start, harvest_end"],
+  ["Seed rate, spacing", "kg/ha, cm", "SAU PoP", "State", "seed_rate, spacing"],
+  ["Fertilizer और nutrient requirement", "kg/ha", "State recommendations (section 9)", "State", "fertilizer_recommendations"],
+  ["Diseases और pests", "list", "NCIPM, SAU (section 10)", "State", "crop_pest"],
+  ["Suitable regions", "list", "DES area data + SAU", "District", "region_crops"],
+  ["Area, production, yield (actual)", "ha, tonnes, q/ha", "DES (Agricultural Statistics)", "District, साल-वार", "region_crops.area_ha, production_t, yield_q_ha, data_year"],
+  ["MSP", "₹/quintal", "CACP", "National, साल-वार", "crop_prices_msp"],
+  ["Mandi price", "₹/quintal", "Agmarknet via data.gov.in (live)", "Market", "live लें, static नहीं"]
+]));
+
+/* ---------- 6. Crop + soil ---------- */
+add(h1("6. CROP + SOIL COMPATIBILITY (Relationships)"));
+add(p("Chain: Region (LGD district) → Agro-climatic zone → Soil types in that region (area %) → Soil properties (SHC readings) → Crop requirements (ranges) → Suitability result → Suitable crops list."));
+add(table(["Step", "Table", "Key columns", "Kaise use hoga"], [2000, 3000, 5000, 4838], [
+  ["1. Region", "regions", "lgd_code, agro_zone_id", "Farmer का district चुना जाता है"],
+  ["2. Soil types", "region_soil", "region_id, soil_type_id, area_pct", "उस district की मुख्य soils"],
+  ["3. Soil properties", "soil_measurements", "region_id, parameter_id, value, rating, data_year", "pH, EC, OC, N, P, K का सबसे भरोसेमंद value (section 12 की priority)"],
+  ["4. Crop needs", "crop_requirements", "crop_id, ph_min/max, salinity_tolerance, drainage_pref, texture_pref", "Ranges, हर combination store नहीं करते"],
+  ["5. Match", "rules (code)", "हर criterion: match / partly / no", "Suitability class: High, Moderate, Marginal, Not suitable"],
+  ["6. Official advice", "soil_crop_compatibility", "soil_type_id, crop_id, class, source_id", "जहाँ ICAR/SAU ने सीधे लिखा हो वह official curated entry"]
+]));
+add(note("नियम: ranges से निकला suitability = derived, और official recommendation = official। App में दोनों अलग दिखाओ। FAO GAEZ suitability maps को सिर्फ cross-check के लिए रखें (coarse resolution)।"));
+
+/* ---------- 7. Crop + weather ---------- */
+add(h1("7. CROP + WEATHER RELATIONSHIP"));
+add(p("Example: गेहूँ का किसान, कल significant बारिश forecast। App को चाहिए: crop, उसका growth stage, और उस stage पर बारिश/तापमान की सीमाएँ।"));
+add(table(["Data point", "Unit", "Kis liye", "Source (official ही)"], [4200, 1600, 5000, 4038], [
+  ["Crop growth stages और हर stage की दिनों में अवधि (sowing से)", "days", "आज कौन सा stage है, यह निकालने के लिए", "SAU package of practices"],
+  ["Stage-wise irrigation trigger और critical irrigation stages", "text / mm", "कब सिंचाई ज़रूरी है", "SAU/ICAR"],
+  ["Rain के बाद irrigation postpone करने की सीमा", "mm in 24-48 h", "\"कल बारिश है तो सिंचाई रोकें\" वाला rule", "ICAR/SAU/IMD Agromet advisories"],
+  ["Harmful rainfall (harvest, flowering, sowing stage पर)", "mm / 24 h", "Alert: कटाई जल्दी करें, spray टालें", "SAU/ICAR advisories"],
+  ["Heat stress और cold/frost thresholds (stage-wise)", "°C", "Heatwave/frost alerts", "ICAR/SAU, IMD definitions"],
+  ["Wind damage / lodging risk", "km/h", "Support, spray delay", "SAU advisories"],
+  ["Disease-favourable weather (temp + humidity + rain)", "°C, %, mm", "Disease risk warning", "NCIPM/SAU"],
+  ["Spray restriction (बारिश से पहले/बाद)", "hours", "Spray timing advice", "Pesticide label/SAU advisory"],
+  ["Sowing condition (soil moisture, temperature)", "% / °C", "Sowing advice", "SAU PoP"]
+]));
+add(note("अगर कोई threshold official source में नहीं मिला तो उसे खाली छोड़ो या status = team_assumption लिखो, और app में उसे official advice की तरह मत दिखाओ।"));
+
+/* ---------- 8. Irrigation ---------- */
+add(h1("8. IRRIGATION / WATER DATA (Member: Water)"));
+add(table(H5, W5, [
+  ["Crop water requirement (season और stage-wise)", "mm", "SAU PoP; FAO Irrigation and Drainage Paper 56 (crop coefficients Kc)", "Crop × zone", "crop_stages.kc, crop_requirements.water_req_mm"],
+  ["Irrigation frequency और critical stages", "count, days", "SAU/ICAR", "Crop × state", "irrigation_practice"],
+  ["Soil moisture requirement (field capacity, wilting point)", "% volume", "Soil survey values, वरना texture से estimate (flagged)", "Soil type", "soil_types.whc + method"],
+  ["Groundwater availability", "category: safe / semi-critical / critical / over-exploited", "CGWB assessment", "Block / district", "groundwater.category, stage_pct, year"],
+  ["Rainwater contribution (effective rainfall)", "mm", "Weather data + official method", "Lat/lon", "derived, live"],
+  ["Irrigation sources: tube-well, canal, tank, river", "ha, %, count", "Minor Irrigation Census, DES", "District", "irrigation_region"],
+  ["Rivers, canals, reservoirs nearby", "GIS", "India-WRIS", "District", "GIS layer"],
+  ["Drip / sprinkler suitability", "text", "PMKSY (Per Drop More Crop) guidance, SAU", "Crop × soil texture", "irrigation_practice.method_suitability"],
+  ["Irrigation water quality (EC)", "dS/m", "State water-testing data (मिले तो)", "District", "optional"]
+]));
+
+/* ---------- 9. Fertilizer ---------- */
+add(h1("9. FERTILIZER / NUTRIENT DATA"));
+add(table(["Data", "Unit", "Source", "DB table / field"], [4200, 1800, 4800, 4038], [
+  ["NPK requirement per crop (region-wise)", "kg/ha (N, P2O5, K2O)", "State recommendations, SHC crop-wise advice, ICAR", "fertilizer_recommendations"],
+  ["Recommendation by soil-test rating (Low / Medium / High)", "kg/ha", "SHC cards और state agriculture dept", "fertilizer_recommendations.soil_rating"],
+  ["Micronutrients (Zn, B, S आदि) और कब देना है", "kg/ha", "SHC, state recommendations", "micronutrient_note"],
+  ["Fertilizer types और nutrient % (Urea, DAP, MOP, SSP आदि)", "% N / P2O5 / K2O", "Official fertilizer specifications (Fertiliser Control Order)", "fertilizers"],
+  ["Application timing (basal, top-dressing, splits)", "text, days after sowing", "SAU package of practices", "timing_notes"],
+  ["Organic manure norms", "t/ha", "SAU", "notes"]
+]));
+add(note("Dose सिर्फ official recommendation से। AI या अंदाज़े से fertilizer dose कभी database में मत डालो।"));
+
+/* ---------- 10. Pest ---------- */
+add(h1("10. DISEASE AND PEST DATA"));
+add(p("हाँ, crop-wise database रखना चाहिए। हर disease/pest के लिए fields:"));
+add(table(["Field", "Detail"], [3600, 11238], [
+  ["Name, scientific name, local name", "Common और scientific नाम, Hindi/local नाम"],
+  ["Type", "Fungal / bacterial / viral / insect / nematode / weed"],
+  ["Affected crops और crop stage", "crop_pest table: crop_id, pest_id, stage, season, region"],
+  ["Symptoms और affected part", "Short official description (photo reference optional)"],
+  ["Favourable weather", "Temperature, humidity, rain conditions (weather rules के लिए)"],
+  ["Economic threshold level (ETL)", "सिर्फ जहाँ official published हो"],
+  ["Management", "Cultural, biological, chemical। Chemical सिर्फ official recommended और registered products, dose के साथ source"],
+  ["Region और season prevalence", "State/district level"],
+  ["Source", "NCIPM, ICAR, SAU, CIB&RC (registered pesticides)"]
+]));
+add(note("Pesticide dose और स्वास्थ्य से जुड़ी सलाह सिर्फ official label/recommendation से। App में हमेशा \"local agriculture officer / KVK से पुष्टि करें\" लिखें।"));
+
+/* ---------- 11. Sources ---------- */
+add(h1("11. Reliable sources (official / credible)"));
+add(p("Status: \"Checked\" = इस project में मैंने खुद जाँचा। \"Team verify\" = मुझे यह source ज्ञात है, पर URL, data availability और licence team को खुद confirm करना है।"));
+add(table(["Source (organization)", "Dataset / portal", "Level", "Update", "Use / licence note", "Status"], [2500, 4000, 1700, 1700, 3200, 1738], [
+  ["IMD (India Meteorological Department)", "mausam.imd.gov.in: forecasts, warnings, rainfall normals, gridded data, agromet advisories", "District / grid", "रोज़ से सालाना", "Official। कुछ data request पर मिलता है, terms देखें", "Team verify"],
+  ["Open-Meteo", "Forecast, historical, geocoding APIs (open-meteo.com)", "Lat/lon", "हर घंटे", "Free, non-commercial use। App में चल रहा", "Checked"],
+  ["NASA POWER", "Agroclimatology daily/monthly data (power.larc.nasa.gov)", "Lat/lon (grid)", "रोज़", "Free API", "Team verify"],
+  ["Soil Health Card (Dept. of Agriculture)", "soilhealth.dac.gov.in: Nutrient Dashboard (state/district nutrient status)", "State / district / village", "SHC cycle", "Dashboard मौजूद है। Bulk download/API confirm नहीं हुआ", "Checked (dashboard); API unconfirmed"],
+  ["data.gov.in (Open Government Data)", "Datasets और APIs। Mandi price API confirmed (state, district, market, commodity, min/max/modal price)", "Dataset पर निर्भर", "Dataset पर निर्भर", "Free API key। हर dataset का licence page देखें", "Checked (mandi API)"],
+  ["ICAR-NBSS&LUP", "Soil resource maps, soil series, district soil reports (nbsslup.icar.gov.in)", "District / state", "सालों में", "Reports/maps के use की terms देखें", "Team verify"],
+  ["Directorate of Economics and Statistics (MoA&FW)", "Agricultural Statistics: area, production, yield, land use", "District, साल-वार", "सालाना", "Official publication। data.gov.in पर भी", "Team verify"],
+  ["LGD (Local Government Directory)", "lgdirectory.gov.in: state/district/block/village codes", "Village तक", "समय-समय पर", "Official codes", "Team verify"],
+  ["CGWB (Central Ground Water Board)", "cgwb.gov.in: groundwater levels, resource assessment", "Block / district", "सालाना", "Official reports", "Team verify"],
+  ["India-WRIS", "indiawris.gov.in: rivers, canals, reservoirs, water GIS", "District", "अलग-अलग", "Official", "Team verify"],
+  ["Minor Irrigation Census (Ministry of Jal Shakti)", "Tube-wells, wells, tanks by district", "District", "कई सालों में", "Official census", "Team verify"],
+  ["ICAR institutes, State Agricultural Universities, KVKs", "Package of practices: sowing window, seed rate, fertilizer, irrigation, pests", "State / zone", "सालाना", "State-specific। सबसे ज़रूरी source crops के लिए", "Team verify"],
+  ["NCIPM (ICAR)", "Pest/disease surveillance और advisories", "State / district", "Season", "Official", "Team verify"],
+  ["CIB&RC", "Registered pesticides और label use", "National", "समय-समय पर", "Chemical recommendation इसी से", "Team verify"],
+  ["CACP", "Minimum Support Price", "National", "सालाना", "Official", "Team verify"],
+  ["Bhuvan (ISRO/NRSC)", "Land use/land cover और thematic GIS layers (bhuvan.nrsc.gov.in)", "Regional", "अलग-अलग", "Official", "Team verify"],
+  ["FAO GAEZ", "Crop suitability maps (gaez.fao.org)", "Coarse grid", "static", "सिर्फ cross-check", "Team verify"],
+  ["ISRIC SoilGrids", "Modelled soil properties", "250 m", "static", "REST API abhi paused (ISRIC page)। बाद में use", "Checked (paused)"]
+]));
+
+/* ---------- 12. SHC + GIS ---------- */
+add(h1("12. Soil Health Card / soil-test data को integrate कैसे करें"));
+add(p("हाँ, GIS/soil-map data और SHC data को मिलाकर accuracy बढ़ाई जा सकती है, क्योंकि दोनों अलग चीज़ बताते हैं:"));
+add(bl("Soil map (NBSS&LUP): स्थायी गुण, जैसे soil type, texture, drainage, depth।"));
+add(bl("SHC / soil test: बदलने वाले गुण, जैसे pH, EC, OC, N, P, K, micronutrients।"));
+add(h2("Priority rule (कौन सा value पहले लें)"));
+add(table(["Priority", "Value का स्तर", "Status label"], [1600, 8000, 5238], [
+  ["1", "Farmer का अपना soil-test/SHC value (farmer खुद डाले)", "farmer_entered"],
+  ["2", "Village-level SHC average", "official"],
+  ["3", "Block-level SHC average", "official"],
+  ["4", "District-level SHC average या dashboard value", "official"],
+  ["5", "Soil map या modelled value (SoilGrids जब चालू हो)", "modelled"],
+  ["6", "कुछ नहीं मिला", "\"data उपलब्ध नहीं\" दिखाओ"]
+]));
+add(h2("Practical structure: soil_measurements"));
+add(table(["Column", "Meaning"], [3600, 11238], [
+  ["region_id, level", "कौन सा स्थान और स्तर (village / block / district)"],
+  ["parameter_id, value, unit", "ph, ec, oc, n, p, k, zn... और उसका मान"],
+  ["rating, pct_low, pct_medium, pct_high", "Low/Medium/High rating, और dashboard में जहाँ distribution मिले वह"],
+  ["sample_count, data_year, cycle", "कितने samples और किस साल/cycle का"],
+  ["source_id, status, confidence", "official / derived / modelled / farmer_entered, और भरोसे का स्तर"]
+]));
+add(p("Farmer अपनी SHC के values app में खुद डाल सके, इसके लिए अलग farmer_soil_tests table रखें। यह private data है: सिर्फ उसी farmer को दिखे, और SHC number जैसी पहचान सावधानी से रखें।"));
+
+/* ---------- 13. Provenance ---------- */
+add(h1("13. हर data point का source कैसे track करें"));
+add(table(["Column", "Example / meaning"], [3600, 11238], [
+  ["source_id", "sources table का id (एक source, एक row)"],
+  ["source_name, source_url", "\"Soil Health Card portal\", उस page/dashboard का URL"],
+  ["page_or_table_ref", "Report का page/table नंबर, या dashboard का filter (state, district, साल)"],
+  ["data_year", "Data किस साल/cycle का है"],
+  ["date_accessed", "आपने कब download/देखा"],
+  ["licence_note", "Licence या use की शर्त, जैसी source पर लिखी है"],
+  ["status", "official / derived / estimated / modelled / team_assumption"],
+  ["collected_by, verified_by", "किसने डाला, किसने दूसरी बार जाँचा"],
+  ["notes", "कोई सीमा, जैसे \"district average, village नहीं\""]
+]));
+add(note("Validation lead हर member की 10% rows को source page से दोबारा मिलाए। ग़लत मिले तो पूरा batch दोबारा जाँचा जाए।"));
+
+/* ---------- 14. Difficult ---------- */
+add(h1("14. जो parameters मिलना मुश्किल हैं, और उनका विकल्प"));
+add(table(["Parameter", "मुश्किल क्यों", "क्या use करें"], [3800, 5400, 5638], [
+  ["Village-level SHC data (bulk)", "Bulk download/API confirm नहीं हुआ", "Dashboard से district/block level, और farmer खुद अपनी SHC values डाले"],
+  ["Water holding capacity", "बहुत कम published", "Texture से estimate, status = estimated, method लिखें"],
+  ["Drainage class", "सिर्फ soil survey reports में", "Soil survey से लें, न मिले तो खाली"],
+  ["Stage-wise weather thresholds", "अलग-अलग crops/states में बिखरे हैं", "ICAR/SAU advisories से; न मिले तो team_assumption flag के साथ या खाली"],
+  ["District-wise crop water requirement", "Zone-level मिलता है", "SAU zone value, या Kc × ET0 (derived, flagged)"],
+  ["Block-level irrigation source data", "Census सिर्फ district तक", "District data और उसे साफ लिखें"],
+  ["Pest ETL", "सिर्फ major pests के लिए published", "जहाँ नहीं है वहाँ खाली, guess नहीं"],
+  ["Micronutrient data", "सारे states में एक जैसा नहीं", "जहाँ मिले वहाँ ही, बाकी खाली"]
+]));
+
+/* ---------- 15. Schema ---------- */
+add(h1("15. Database schema (practical)"));
+add(table(["Table", "Important columns"], [3400, 11438], [
+  ["sources", "id, organization, title, url, licence_note, data_year, date_accessed"],
+  ["regions", "id, level (state/district/block), lgd_code, name, name_hi, parent_id, lat, lon, area_ha, agro_zone_id, aer_id, boundary_file, source_id"],
+  ["agro_zones", "id, name, type (NARP / AER), state, description"],
+  ["soil_types", "id, name, taxonomy_order, texture_class, sand_pct, silt_pct, clay_pct, drainage_class, whc, whc_method, source_id"],
+  ["region_soil", "region_id, soil_type_id, area_pct, source_id"],
+  ["soil_parameters", "id, code, name, unit, min_valid, max_valid, low_cut, high_cut, source_id"],
+  ["soil_measurements", "id, region_id, parameter_id, value, rating, pct_low, pct_medium, pct_high, sample_count, data_year, status, confidence, source_id"],
+  ["crops", "id, name_en, name_hi, scientific_name, category, source_id"],
+  ["crop_requirements", "id, crop_id, agro_zone_id or state, season, duration_days, ph_min, ph_max, temp_min, temp_opt_min, temp_opt_max, temp_max, rain_min, rain_max, water_req_mm, salinity_tolerance, drainage_pref, texture_pref, sowing_start, sowing_end, harvest_start, harvest_end, source_id"],
+  ["crop_stages", "id, crop_id, stage_name, day_from, day_to, kc, water_need, critical_irrigation, heat_stress_above, cold_stress_below, harmful_rain_24h, wind_risk, source_id"],
+  ["region_crops", "region_id, crop_id, season, area_ha, production_t, yield_q_ha, data_year, source_id"],
+  ["soil_crop_compatibility", "soil_type_id, crop_id, suitability_class, notes, source_id"],
+  ["weather_normals", "region_id, month, temp_max_avg, temp_min_avg, rainfall_mm, rainy_days, humidity, period, source_id"],
+  ["weather_rules", "id, event_type, parameter, threshold, unit, source_id (IMD definitions)"],
+  ["weather_cache (मौजूद है)", "district, data_json, cached_at (live data)"],
+  ["irrigation_region", "region_id, source_type (canal/tube-well/tank/river/rainfed), area_ha, pct, year, source_id"],
+  ["groundwater", "region_id, year, stage_pct, category, water_level_m, source_id"],
+  ["irrigation_practice", "crop_id, agro_zone_id, num_irrigations, critical_stages, method_suitability, source_id"],
+  ["fertilizers", "id, name, n_pct, p2o5_pct, k2o_pct, type, source_id"],
+  ["fertilizer_recommendations", "crop_id, state/zone, soil_rating, n_kg_ha, p2o5_kg_ha, k2o_kg_ha, micronutrient_note, timing_notes, source_id"],
+  ["pests_diseases", "id, name, scientific_name, type, symptoms, favourable_conditions, etl, management, source_id"],
+  ["crop_pest", "crop_id, pest_id, stage, season, region_id"],
+  ["farmer_soil_tests (private)", "farmer_id, test_date, parameter_id, value, unit, lab_note"]
+]));
+add(p("आपके मौजूदा app के tables इनसे ऐसे जुड़ेंगे: RegionCrop → crop_requirements और region_crops, SoilHealth → soil_measurements, WeatherCache वैसा ही रहेगा। जब team का CSV data आएगा तो import और validation scripts बनेंगी।"));
+
+/* ---------- 16. Team ---------- */
+add(h1("16. Team work division"));
+add(p("6 members के लिए सुझाव: category के हिसाब से बाँटो (हर कोई एक जैसा template भरे), और हर member उन्हीं 3 pilot states के लिए data निकाले। इससे region-wise data आपस में मेल खाता है।"));
+add(table(["Member", "Category", "Tables जो भरेंगे", "मुख्य sources"], [1600, 4200, 4600, 4438], [
+  ["1", "Soil और Soil Health Card", "soil_types, region_soil, soil_parameters, soil_measurements", "SHC portal, ICAR-NBSS&LUP, state soil labs"],
+  ["2", "Crops और crop requirements", "crops, crop_requirements, crop_stages, region_crops", "SAU package of practices, ICAR, DES"],
+  ["3", "Weather और climate", "weather_normals, weather_rules, live API mapping", "IMD, Open-Meteo, NASA POWER"],
+  ["4", "Water, irrigation और fertilizer", "irrigation_region, groundwater, irrigation_practice, fertilizers, fertilizer_recommendations", "CGWB, India-WRIS, MI Census, SAU"],
+  ["5", "Regions और GIS", "regions, agro_zones, boundary files (नाम DB से match)", "LGD, official boundary files, ICAR zones"],
+  ["6", "Sources, pests और validation lead", "sources, pests_diseases, crop_pest, और सबका QA", "NCIPM, CIB&RC, सभी sources की licence जाँच"]
+]));
+add(h2("बेहतर संयोजन"));
+add(bl("पहले 6 घंटे में सब मिलकर pilot states, crops और sources तय करें (member 6 source register बनाए)।"));
+add(bl("हर member Excel/CSV में एक ही column template इस्तेमाल करे (section 17)। साझा folder में एक file per member।"));
+add(bl("Member 6 हर file की 10% rows source से दोबारा मिलाए, फिर file import के लिए तैयार मानी जाए।"));
+add(bl("Deadline क्रम: (1) sources और pilot scope, (2) raw data collection, (3) cleaning और validation, (4) database import और demo।"));
+
+/* ---------- 17. Template + team message ---------- */
+add(h1("17. Collection template और team के लिए final checklist"));
+add(p("हर member की file में ये columns हों (नीचे 4 provenance columns हर row में जरूरी):"));
+add(p("region_lgd_code | region_name | parameter / field | value | unit | data_year | source_name | source_url | page_or_table_ref | date_accessed | licence_note | status | collected_by | verified_by | notes"));
+add(table(["सदस्य", "क्या research करना है", "कौन से fields", "Source कहाँ से", "किस format में दें", "Database में कहाँ जाएगा"], [1200, 3200, 3800, 2900, 2200, 1538], [
+  ["1 Soil", "3 pilot states के हर district की soil और nutrient status", "soil type, texture, drainage, pH, EC, OC, N, P, K, Zn, S", "SHC portal dashboard, ICAR-NBSS&LUP", "CSV, section 17 template", "soil_*"],
+  ["2 Crops", "5 major crops की requirements और calendar", "pH range, temperature, water, season, sowing/harvest, area/yield", "SAU PoP, ICAR, DES", "CSV, section 17 template", "crop_*"],
+  ["3 Climate", "Normals और extreme-event definitions", "monthly rainfall/temp normals, IMD thresholds", "IMD, NASA POWER, Open-Meteo", "CSV", "weather_*"],
+  ["4 Water", "Irrigation, groundwater, fertilizer doses", "sources, stage_pct, category, N-P2O5-K2O doses", "CGWB, MI Census, SAU", "CSV", "irrigation_*, fertilizer_*"],
+  ["5 Regions", "Codes, boundaries, zones", "LGD codes, lat/lon, zone, boundary file name", "LGD, official boundaries, ICAR zones", "CSV + GeoJSON", "regions, agro_zones"],
+  ["6 QA", "Sources register, pests, validation", "source details, pest fields, verification log", "NCIPM, CIB&RC, सभी sources", "CSV + checklist", "sources, pests_*"]
+]));
+add(h2("WhatsApp पर भेजने का संदेश"));
+add(p("Team, हमें AI के अंदाज़े नहीं, official data से database बनाना है। हर member अपनी category का data इस document के section 17 वाले template में भरे: value + unit + साल + source name + source URL + page/table + तारीख। जो नहीं मिला वह खाली छोड़ो, अंदाज़ा मत लिखो। पहले 3 states (Bihar, Punjab, Maharashtra) और 5 major crops पर काम करेंगे। हर file Member 6 verify करेगा (10% rows source से मिलाकर), फिर import होगी।"));
+
+const doc = new Document({
+  creator: "Claude", title: "Agriculture Data Collection Guide",
+  styles: {
+    default: { document: { run: { font: FONT, size: 20 } } },
+    paragraphStyles: [
+      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 30, bold: true, font: FONT, color: GREEN }, paragraph: { spacing: { before: 300, after: 120 }, outlineLevel: 0 } },
+      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 24, bold: true, font: FONT, color: GREEN }, paragraph: { spacing: { before: 200, after: 80 }, outlineLevel: 1 } }
+    ]
+  },
+  numbering: { config: [{ reference: "bullets", levels: [{ level: 0, format: LevelFormat.BULLET, text: "\u2022", alignment: AlignmentType.LEFT,
+    style: { paragraph: { indent: { left: 540, hanging: 270 } } } }] }] },
+  sections: [{
+    properties: { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin: { top: 1000, right: MARGIN, bottom: 1000, left: MARGIN } } },
+    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
+      new TextRun({ text: "Agriculture Data Collection Guide  |  Page ", font: FONT, size: 16, color: GREY }),
+      new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: GREY })] })] }) },
+    children: kids
+  }]
+});
+
+Packer.toBuffer(doc).then(buf => {
+  fs.mkdirSync("/mnt/user-data/outputs", { recursive: true });
+  fs.writeFileSync("/mnt/user-data/outputs/Agriculture-Data-Collection-Guide.docx", buf);
+  console.log("written", buf.length, "bytes");
+});

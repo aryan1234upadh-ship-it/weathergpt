@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: weathergpt
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python seed.py
+    startCommand: gunicorn run:app --workers 1 --threads 4
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: groq
+      - key: AI_MODEL
+        value: openai/gpt-oss-20b
+      - key: AI_API_KEY
+        sync: false
+      - key: WEATHER_MODE
+        value: live
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: OTP_MODE
+        value: demo
+      - key: ALERT_SIM
+        value: off
+      - key: START_SCHEDULER
+        value: true
