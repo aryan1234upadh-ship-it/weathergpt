@@ -24,6 +24,22 @@ const T = {
     crop_main: "Main crop", register_btn: "Create account",
     demo_otp: "Demo mode: tap to fill OTP {otp}", registered: "Account created. Now log in.",
     nav_home: "Home", nav_chat: "Chat", nav_crops: "Crops", nav_soil: "Soil", nav_nutrients: "Nutrients", nav_map: "Map", nav_alerts: "Alerts",
+    nutrient_title: "Soil Health Card nutrient dashboard", nutrient_download: "Download project workbook", nutrient_national: "All-India figures from the supplied PDF dashboard", nutrient_cycle: "Cycle",
+    nutrient_n_samples: "N sample records", nutrient_p_samples: "P sample records", nutrient_k_samples: "K sample records", nutrient_oc_samples: "OC sample records",
+    nutrient_state_coverage: "State workbook coverage: {n} rows. Those state counts are listed separately below and do not sum to the all-India PDF totals.",
+    nutrient_state_rows: "State and union territory workbook rows", nutrient_state_label: "State / UT", nutrient_choose_state: "Choose state or union territory",
+    nutrient_source: "Source: supplied Soil Health Card RKVY workbook and matching PDF dashboard.", nutrient_data_note: "NUTRIENTS has state-level sample counts and approximate map points. NUTRIENT_SUMMARY has all-India counts from the supplied PDF.", nutrient_map_title: "Soil Health Card map",
+    nutrient_map_help: "Select a nutrient above. Larger circles indicate higher reported counts. Click a state point for its nutrient breakdown.",
+    nutrient_map_location: "Locations are approximate state/UT centers; this dataset does not include boundary polygons.",
+    nutrient_map_loaded: "{n} state/UT points loaded from the project workbook.", nutrient_map_approx: "Map point is an approximate state/UT center.",
+    map_metric: "Map metric", map_farm_areas: "Mapped farm areas", map_hide_fields: "Hide field areas", map_show_fields: "Show field areas",
+    ng_n: "Nitrogen (N)", ng_p: "Phosphorus (P)", ng_k: "Potassium (K)", ng_oc: "Organic carbon (OC)", ng_ph: "pH", ng_ec: "Electrical conductivity (EC)",
+    ng_s: "Sulfur", ng_fe: "Iron", ng_zn: "Zinc", ng_cu: "Copper", ng_b: "Boron", ng_mn: "Manganese",
+    nutrient_high: "High", nutrient_medium: "Medium", nutrient_low: "Low", nutrient_alkaline: "Alkaline", nutrient_acidic: "Acidic", nutrient_neutral: "Neutral",
+    nutrient_non_saline: "Non-saline", nutrient_saline: "Saline", nutrient_sufficient: "Sufficient", nutrient_deficient: "Deficient",
+    nutrient_n_low: "Nitrogen low", nutrient_p_low: "Phosphorus low", nutrient_k_low: "Potassium low", nutrient_oc_low: "Organic carbon low",
+    nutrient_s_deficient: "Sulfur deficient", nutrient_fe_deficient: "Iron deficient", nutrient_zn_deficient: "Zinc deficient", nutrient_cu_deficient: "Copper deficient", nutrient_b_deficient: "Boron deficient", nutrient_mn_deficient: "Manganese deficient",
+    nutrient_th: "State / UT", nutrient_n: "N low", nutrient_p: "P low", nutrient_k: "K low", nutrient_oc: "OC low", nutrient_fe: "Fe deficient", nutrient_zn: "Zn deficient",
     logout: "Log out", hello: "Hello, {n}",
     weather_in: "Weather in {d}", humidity: "Humidity", wind: "Wind", rain24: "Rain, next 24 hours", rain_chance: "Chance of rain today", rain_hourly: "Rain chance by hour",
     rain5: "Rain, next 5 days", range5: "5-day range", demo_data: "Demo data",
@@ -69,7 +85,23 @@ const T = {
     sendotp: "OTP भेजें", verify: "जाँचें और लॉग इन करें", name: "नाम", state: "राज्य", district: "ज़िला",
     crop_main: "मुख्य फसल", register_btn: "खाता बनाएँ",
     demo_otp: "डेमो मोड: OTP {otp} भरने के लिए दबाएँ", registered: "खाता बन गया। अब लॉग इन करें।",
-    nav_home: "होम", nav_chat: "चैट", nav_crops: "फसलें", nav_soil: "मिट्टी", nav_map: "नक्शा", nav_alerts: "अलर्ट",
+    nav_home: "होम", nav_chat: "चैट", nav_crops: "फसलें", nav_soil: "मिट्टी", nav_nutrients: "पोषक तत्व", nav_map: "नक्शा", nav_alerts: "अलर्ट",
+    nutrient_title: "मृदा स्वास्थ्य कार्ड पोषक तत्व डैशबोर्ड", nutrient_download: "प्रोजेक्ट की कार्यपुस्तिका डाउनलोड करें", nutrient_national: "दिए गए PDF डैशबोर्ड के अखिल भारतीय आँकड़े", nutrient_cycle: "चक्र",
+    nutrient_n_samples: "N नमूना रिकॉर्ड", nutrient_p_samples: "P नमूना रिकॉर्ड", nutrient_k_samples: "K नमूना रिकॉर्ड", nutrient_oc_samples: "OC नमूना रिकॉर्ड",
+    nutrient_state_coverage: "राज्य की कार्यपुस्तिका में {n} पंक्तियाँ हैं। राज्य के आँकड़े नीचे अलग दिए हैं और इनका योग PDF के अखिल भारतीय आँकड़ों के बराबर नहीं है।",
+    nutrient_state_rows: "राज्य और केंद्रशासित प्रदेश की कार्यपुस्तिका पंक्तियाँ", nutrient_state_label: "राज्य / केंद्रशासित प्रदेश", nutrient_choose_state: "राज्य या केंद्रशासित प्रदेश चुनें",
+    nutrient_source: "स्रोत: दी गई मृदा स्वास्थ्य कार्ड RKVY कार्यपुस्तिका और संबंधित PDF डैशबोर्ड।", nutrient_data_note: "NUTRIENTS शीट में राज्य-स्तर के नमूना आँकड़े और नक्शे के अनुमानित बिंदु हैं। NUTRIENT_SUMMARY शीट में दिए गए PDF के अखिल भारतीय आँकड़े हैं।", nutrient_map_title: "मृदा स्वास्थ्य कार्ड नक्शा",
+    nutrient_map_help: "ऊपर पोषक तत्व चुनें। बड़े गोले अधिक दर्ज संख्या दिखाते हैं। पोषक तत्वों का विवरण देखने के लिए राज्य के बिंदु पर क्लिक करें।",
+    nutrient_map_location: "स्थान राज्य/केंद्रशासित प्रदेश के अनुमानित केंद्र हैं; इस डेटा में सीमा मानचित्र शामिल नहीं हैं।",
+    nutrient_map_loaded: "प्रोजेक्ट कार्यपुस्तिका से {n} राज्य/केंद्रशासित प्रदेश बिंदु लोड हुए।", nutrient_map_approx: "नक्शे का बिंदु राज्य/केंद्रशासित प्रदेश का अनुमानित केंद्र है।",
+    map_metric: "नक्शे का मापदंड", map_farm_areas: "नक्शे पर खेत के क्षेत्र", map_hide_fields: "खेत के क्षेत्र छिपाएँ", map_show_fields: "खेत के क्षेत्र दिखाएँ",
+    ng_n: "नाइट्रोजन (N)", ng_p: "फॉस्फोरस (P)", ng_k: "पोटैशियम (K)", ng_oc: "जैविक कार्बन (OC)", ng_ph: "pH", ng_ec: "विद्युत चालकता (EC)",
+    ng_s: "सल्फर", ng_fe: "लोहा", ng_zn: "जस्ता", ng_cu: "तांबा", ng_b: "बोरॉन", ng_mn: "मैंगनीज़",
+    nutrient_high: "अधिक", nutrient_medium: "मध्यम", nutrient_low: "कम", nutrient_alkaline: "क्षारीय", nutrient_acidic: "अम्लीय", nutrient_neutral: "तटस्थ",
+    nutrient_non_saline: "गैर-लवणीय", nutrient_saline: "लवणीय", nutrient_sufficient: "पर्याप्त", nutrient_deficient: "कमी",
+    nutrient_n_low: "नाइट्रोजन कम", nutrient_p_low: "फॉस्फोरस कम", nutrient_k_low: "पोटैशियम कम", nutrient_oc_low: "जैविक कार्बन कम",
+    nutrient_s_deficient: "सल्फर की कमी", nutrient_fe_deficient: "लोहे की कमी", nutrient_zn_deficient: "जस्ते की कमी", nutrient_cu_deficient: "तांबे की कमी", nutrient_b_deficient: "बोरॉन की कमी", nutrient_mn_deficient: "मैंगनीज़ की कमी",
+    nutrient_th: "राज्य / केंद्रशासित प्रदेश", nutrient_n: "N कम", nutrient_p: "P कम", nutrient_k: "K कम", nutrient_oc: "OC कम", nutrient_fe: "Fe की कमी", nutrient_zn: "Zn की कमी",
     logout: "लॉग आउट", hello: "नमस्ते, {n}",
     weather_in: "{d} का मौसम", humidity: "नमी", wind: "हवा", rain24: "बारिश, अगले 24 घंटे", rain_chance: "आज बारिश की संभावना", rain_hourly: "हर घंटे बारिश की संभावना",
     rain5: "बारिश, अगले 5 दिन", range5: "5 दिन का तापमान", demo_data: "डेमो डेटा",
@@ -198,6 +230,8 @@ function applyLang() {
   document.querySelectorAll("[data-i]").forEach(el => { el.textContent = t(el.dataset.i); });
   document.querySelectorAll("[data-p]").forEach(el => { el.placeholder = t(el.dataset.p); });
   document.querySelectorAll(".langsel").forEach(s => { s.value = lang; });
+  const soilToggle = $("soil-fields-toggle");
+  if (soilToggle) soilToggle.textContent = t(soilFieldsVisible ? "map_hide_fields" : "map_show_fields");
 }
 
 async function loadLanguages() {
@@ -222,6 +256,13 @@ async function setLang(code, save) {
   if (lang !== code) return;
   localeOverrides = overrides;
   applyLang();
+  nutrientMapMarkers.forEach(({ bubble, row }) => {
+    const label = bubble.nextElementSibling;
+    if (label) label.textContent = nutrientStateName(row);
+    bubble.parentElement.title = `${nutrientStateName(row)}: ${fmtCount(row.n_low)} ${t("nutrient_n_low")}`;
+    bubble.parentElement.setAttribute("aria-label", `${t("nutrient_choose_state")}: ${nutrientStateName(row)}`);
+  });
+  if (view === "map" && $("mapcard")) $("mapcard").innerHTML = mapIntro();
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   updateVoiceControls();
   if (me) { renderMini(); route(); }
@@ -696,7 +737,7 @@ $("soil-fields-toggle").addEventListener("click", event => {
   soilFieldsVisible = !soilFieldsVisible;
   setFarmLandVisibility(soilMap, "soil", soilFieldsVisible);
   event.currentTarget.setAttribute("aria-pressed", String(soilFieldsVisible));
-  event.currentTarget.textContent = soilFieldsVisible ? "Hide field areas" : "Show field areas";
+  event.currentTarget.textContent = t(soilFieldsVisible ? "map_hide_fields" : "map_show_fields");
 });
 
 function renderCrop(r, cropName = me.crop) {
@@ -993,7 +1034,7 @@ const MAP_COLORS = { Good: "#2e7d4f", Moderate: "#e8a317", Poor: "#c23b2b" };
 const MAP_NONE = "#c5cec7";
 
 function mapIntro() {
-  return '<h3>Soil Health Card map</h3><p class="sub">Select a nutrient above. Larger circles indicate higher reported counts. Click a state point for its nutrient breakdown.</p><p class="sub">Locations are approximate state/UT centers; this dataset does not include boundary polygons.</p>';
+  return `<h3>${esc(t("nutrient_map_title"))}</h3><p class="sub">${esc(t("nutrient_map_help"))}</p><p class="sub">${esc(t("nutrient_map_location"))}</p>`;
 }
 
 async function showMapCard(name) {
@@ -1069,7 +1110,7 @@ async function initMap() {
         if (!stateBounds.isEmpty()) soilMap.fitBounds(stateBounds, { padding: 48, pitch: 0, duration: 0 });
       }
       if (!nutrientMapMarkers.length) $("mapcard").innerHTML = mapIntro() + '<p class="empty">State nutrient markers were not created.</p>';
-      else $("mapcard").innerHTML = mapIntro() + `<p class="sub">${nutrientMapMarkers.length} state/UT points loaded from the project workbook.</p>`;
+      else $("mapcard").innerHTML = mapIntro() + `<p class="sub">${esc(t("nutrient_map_loaded", { n: nutrientMapMarkers.length }))}</p>`;
     } catch (error) {
       console.error("Could not render state nutrient markers", error);
       $("mapcard").innerHTML = mapIntro() + '<p class="empty">' + esc(error.message || "State nutrient markers could not be rendered.") + "</p>";
@@ -1096,13 +1137,13 @@ function addNutrientMapLayer(data) {
     const element = document.createElement("button");
     element.type = "button";
     element.className = "nutrient-map-marker";
-    element.title = `${row.state}: ${fmtCount(row.n_low)} low nitrogen samples`;
-    element.setAttribute("aria-label", `Open nutrient data for ${row.state}`);
+    element.title = `${nutrientStateName(row)}: ${fmtCount(row.n_low)} ${t("nutrient_n_low")}`;
+    element.setAttribute("aria-label", `${t("nutrient_choose_state")}: ${nutrientStateName(row)}`);
     const bubble = document.createElement("span");
     bubble.className = "nutrient-map-bubble";
     const label = document.createElement("span");
     label.className = "nutrient-map-label";
-    label.textContent = row.state;
+    label.textContent = nutrientStateName(row);
     element.append(bubble, label);
     element.addEventListener("click", event => {
       event.stopPropagation();
@@ -1115,7 +1156,7 @@ function addNutrientMapLayer(data) {
 }
 
 function showNutrientMapCard(row) {
-  $("mapcard").innerHTML = `<h3>${esc(row.state)}</h3><p class="sub">${esc(row.scheme)} · ${esc(row.cycle)}; map point is an approximate state/UT center.</p>${nutrientGroupTable(row)}`;
+  $("mapcard").innerHTML = `<h3>${esc(nutrientStateName(row))}</h3><p class="sub">${esc(row.scheme)} · ${esc(t("nutrient_cycle"))} ${esc(row.cycle)}; ${esc(t("nutrient_map_approx"))}</p>${nutrientGroupTable(row)}`;
 }
 
 function updateSoilMapMarker() {
@@ -1189,24 +1230,28 @@ async function checkAlertDot() {
    State level nutrient output from the supplied Soil Health Card files
    ------------------------------------------------------------------ */
 const NUTRIENT_GROUPS = [
-  { label: "Nitrogen (N)", keys: ["n_high", "n_medium", "n_low"], names: ["High", "Medium", "Low"] },
-  { label: "Phosphorus (P)", keys: ["p_high", "p_medium", "p_low"], names: ["High", "Medium", "Low"] },
-  { label: "Potassium (K)", keys: ["k_high", "k_medium", "k_low"], names: ["High", "Medium", "Low"] },
-  { label: "Organic carbon (OC)", keys: ["oc_high", "oc_medium", "oc_low"], names: ["High", "Medium", "Low"] },
-  { label: "pH", keys: ["p_h_alkaline", "p_h_acidic", "p_h_neutral"], names: ["Alkaline", "Acidic", "Neutral"] },
-  { label: "Electrical conductivity (EC)", keys: ["ec_non_saline", "ec_saline"], names: ["Non-saline", "Saline"] },
-  ...[["Sulfur", "s"], ["Iron", "fe"], ["Zinc", "zn"], ["Copper", "cu"], ["Boron", "b"], ["Manganese", "mn"]]
-    .map(([label, key]) => ({ label, keys: [key + "_sufficient", key + "_deficient"], names: ["Sufficient", "Deficient"] }))
+  { label: "ng_n", keys: ["n_high", "n_medium", "n_low"], names: ["nutrient_high", "nutrient_medium", "nutrient_low"] },
+  { label: "ng_p", keys: ["p_high", "p_medium", "p_low"], names: ["nutrient_high", "nutrient_medium", "nutrient_low"] },
+  { label: "ng_k", keys: ["k_high", "k_medium", "k_low"], names: ["nutrient_high", "nutrient_medium", "nutrient_low"] },
+  { label: "ng_oc", keys: ["oc_high", "oc_medium", "oc_low"], names: ["nutrient_high", "nutrient_medium", "nutrient_low"] },
+  { label: "ng_ph", keys: ["p_h_alkaline", "p_h_acidic", "p_h_neutral"], names: ["nutrient_alkaline", "nutrient_acidic", "nutrient_neutral"] },
+  { label: "ng_ec", keys: ["ec_non_saline", "ec_saline"], names: ["nutrient_non_saline", "nutrient_saline"] },
+  ...[["ng_s", "s"], ["ng_fe", "fe"], ["ng_zn", "zn"], ["ng_cu", "cu"], ["ng_b", "b"], ["ng_mn", "mn"]]
+    .map(([label, key]) => ({ label, keys: [key + "_sufficient", key + "_deficient"], names: ["nutrient_sufficient", "nutrient_deficient"] }))
 ];
+const STATE_NAMES_HI = {
+  "Andhra Pradesh": "आंध्र प्रदेश", "Arunachal Pradesh": "अरुणाचल प्रदेश", "Assam": "असम", "Bihar": "बिहार", "Chhattisgarh": "छत्तीसगढ़", "Goa": "गोवा", "Gujarat": "गुजरात", "Haryana": "हरियाणा", "Himachal Pradesh": "हिमाचल प्रदेश", "Jharkhand": "झारखंड", "Karnataka": "कर्नाटक", "Kerala": "केरल", "Madhya Pradesh": "मध्य प्रदेश", "Maharashtra": "महाराष्ट्र", "Manipur": "मणिपुर", "Meghalaya": "मेघालय", "Mizoram": "मिज़ोरम", "Nagaland": "नागालैंड", "Odisha": "ओडिशा", "Punjab": "पंजाब", "Rajasthan": "राजस्थान", "Sikkim": "सिक्किम", "Tamil Nadu": "तमिलनाडु", "Telangana": "तेलंगाना", "Tripura": "त्रिपुरा", "Uttar Pradesh": "उत्तर प्रदेश", "Uttarakhand": "उत्तराखंड", "West Bengal": "पश्चिम बंगाल", "Andaman and Nicobar Islands": "अंडमान और निकोबार द्वीपसमूह", "Chandigarh": "चंडीगढ़", "Dadra and Nagar Haveli and Daman and Diu": "दादरा और नगर हवेली तथा दमन और दीव", "Delhi": "दिल्ली", "Jammu and Kashmir": "जम्मू और कश्मीर", "Ladakh": "लद्दाख", "Lakshadweep": "लक्षद्वीप", "Puducherry": "पुदुचेरी"
+};
 let selectedNutrientState = "BIHAR";
 
 function fmtCount(value) { return Number(value || 0).toLocaleString(); }
+function nutrientStateName(row) { return lang === "hi" ? (STATE_NAMES_HI[row.state] || row.state) : row.state; }
 function groupTotal(row, group) { return group.keys.reduce((sum, key) => sum + Number(row[key] || 0), 0); }
 function nutrientGroupTable(row) {
   return NUTRIENT_GROUPS.map(group => {
     const total = groupTotal(row, group);
-    const parts = group.keys.map((key, i) => `<span><b>${esc(group.names[i])}</b> ${fmtCount(row[key])}${total ? ` (${(100 * row[key] / total).toFixed(1)}%)` : ""}</span>`).join("");
-    return `<div class="nutrient-row"><b>${esc(group.label)}</b><div>${parts}</div></div>`;
+    const parts = group.keys.map((key, i) => `<span><b>${esc(t(group.names[i]))}</b> ${fmtCount(row[key])}${total ? ` (${(100 * row[key] / total).toFixed(1)}%)` : ""}</span>`).join("");
+    return `<div class="nutrient-row"><b>${esc(t(group.label))}</b><div>${parts}</div></div>`;
   }).join("");
 }
 
@@ -1216,11 +1261,12 @@ async function loadNutrientOutput() {
   const r = await api("/nutrients");
   if (!r.ok) { el.innerHTML = '<article class="card"><p class="empty">' + esc(r.data.error || "Nutrient data unavailable") + "</p></article>"; return; }
   const data = r.data, states = data.states || [];
-  const stateOptions = states.map(row => `<option value="${esc(row.state_key)}">${esc(row.state)}</option>`).join("");
+  const stateOptions = states.map(row => `<option value="${esc(row.state_key)}">${esc(nutrientStateName(row))}</option>`).join("");
   const national = data.national_pdf || {};
   const selected = states.find(row => row.state_key === selectedNutrientState) || states.find(row => row.state_key === "BIHAR") || states[0];
-  const detail = selected ? `<article class="card nutrient-detail"><div class="nutrient-heading"><div><h3>${esc(selected.state)}</h3><p class="sub">${esc(selected.scheme)} · ${esc(selected.cycle)}</p></div><select id="nutrient-state" aria-label="Choose state or union territory">${stateOptions}</select></div>${nutrientGroupTable(selected)}</article>` : "";
-  el.innerHTML = `<article class="card nutrient-overview"><div class="nutrient-heading"><div><h3>Soil Health Card nutrient dashboard</h3><p class="sub">${esc(data.source.scheme)} · Cycle ${esc(data.source.cycle)}</p></div><a class="link" href="/api/nutrients/download">Download project workbook</a></div><p class="sub">All-India figures from the supplied PDF dashboard</p><div class="nutrient-summary"><div><b>${fmtCount(national.n_high + national.n_medium + national.n_low)}</b><span>N sample records</span></div><div><b>${fmtCount(national.p_high + national.p_medium + national.p_low)}</b><span>P sample records</span></div><div><b>${fmtCount(national.k_high + national.k_medium + national.k_low)}</b><span>K sample records</span></div><div><b>${fmtCount(national.oc_high + national.oc_medium + national.oc_low)}</b><span>OC sample records</span></div></div>${nutrientGroupTable(national)}<p class="sub">State workbook coverage: ${states.length} rows. Those state counts are listed separately below and do not sum to the all-India PDF totals.</p></article>${detail}<article class="card nutrient-table-card"><h3>State and union territory workbook rows</h3><div class="nutrient-table-scroll"><table class="nutrient-table"><thead><tr><th>State / UT</th><th>N low</th><th>P low</th><th>K low</th><th>OC low</th><th>Fe deficient</th><th>Zn deficient</th></tr></thead><tbody>${states.map(row => `<tr data-state="${esc(row.state_key)}"><td>${esc(row.state)}</td><td>${fmtCount(row.n_low)}</td><td>${fmtCount(row.p_low)}</td><td>${fmtCount(row.k_low)}</td><td>${fmtCount(row.oc_low)}</td><td>${fmtCount(row.fe_deficient)}</td><td>${fmtCount(row.zn_deficient)}</td></tr>`).join("")}</tbody></table></div></article><p class="nutrient-source sub">Source: supplied Soil Health Card RKVY workbook and matching PDF dashboard. ${esc(data.source.note)}</p>`;
+  const displayState = row => nutrientStateName(row);
+  const detail = selected ? `<article class="card nutrient-detail"><div class="nutrient-heading"><div><h3>${esc(displayState(selected))}</h3><p class="sub">${esc(data.source.scheme)} · ${esc(t("nutrient_cycle"))} ${esc(data.source.cycle)}</p></div><select id="nutrient-state" aria-label="${esc(t("nutrient_choose_state"))}">${stateOptions}</select></div>${nutrientGroupTable(selected)}</article>` : "";
+  el.innerHTML = `<article class="card nutrient-overview"><div class="nutrient-heading"><div><h3>${esc(t("nutrient_title"))}</h3><p class="sub">${esc(data.source.scheme)} · ${esc(t("nutrient_cycle"))} ${esc(data.source.cycle)}</p></div><a class="link" href="/api/nutrients/download">${esc(t("nutrient_download"))}</a></div><p class="sub">${esc(t("nutrient_national"))}</p><div class="nutrient-summary"><div><b>${fmtCount(national.n_high + national.n_medium + national.n_low)}</b><span>${esc(t("nutrient_n_samples"))}</span></div><div><b>${fmtCount(national.p_high + national.p_medium + national.p_low)}</b><span>${esc(t("nutrient_p_samples"))}</span></div><div><b>${fmtCount(national.k_high + national.k_medium + national.k_low)}</b><span>${esc(t("nutrient_k_samples"))}</span></div><div><b>${fmtCount(national.oc_high + national.oc_medium + national.oc_low)}</b><span>${esc(t("nutrient_oc_samples"))}</span></div></div>${nutrientGroupTable(national)}<p class="sub">${esc(t("nutrient_state_coverage", { n: states.length }))}</p></article>${detail}<article class="card nutrient-table-card"><h3>${esc(t("nutrient_state_rows"))}</h3><div class="nutrient-table-scroll"><table class="nutrient-table"><thead><tr><th>${esc(t("nutrient_th"))}</th><th>${esc(t("nutrient_n"))}</th><th>${esc(t("nutrient_p"))}</th><th>${esc(t("nutrient_k"))}</th><th>${esc(t("nutrient_oc"))}</th><th>${esc(t("nutrient_fe"))}</th><th>${esc(t("nutrient_zn"))}</th></tr></thead><tbody>${states.map(row => `<tr data-state="${esc(row.state_key)}"><td>${esc(displayState(row))}</td><td>${fmtCount(row.n_low)}</td><td>${fmtCount(row.p_low)}</td><td>${fmtCount(row.k_low)}</td><td>${fmtCount(row.oc_low)}</td><td>${fmtCount(row.fe_deficient)}</td><td>${fmtCount(row.zn_deficient)}</td></tr>`).join("")}</tbody></table></div></article><p class="nutrient-source sub">${esc(t("nutrient_source"))} ${esc(t("nutrient_data_note"))}</p>`;
   const picker = $("nutrient-state");
   picker.value = selected.state_key;
   picker.addEventListener("change", () => { selectedNutrientState = picker.value; loadNutrientOutput(); });

@@ -198,16 +198,16 @@
           <div class="soil-map-stage">
             <div id="map" aria-label="Interactive map showing state-level soil nutrient counts and mapped farm areas"></div>
             <div class="farm-map-overlay">
-              <label class="map-metric-label" for="nutrient-map-metric">Map metric</label>
+              <label class="map-metric-label" for="nutrient-map-metric" data-i="map_metric">Map metric</label>
               <select id="nutrient-map-metric" aria-label="Map metric">
-                <option value="n_low">Nitrogen low</option><option value="p_low">Phosphorus low</option>
-                <option value="k_low">Potassium low</option><option value="oc_low">Organic carbon low</option>
-                <option value="s_deficient">Sulfur deficient</option><option value="fe_deficient">Iron deficient</option>
-                <option value="zn_deficient">Zinc deficient</option><option value="cu_deficient">Copper deficient</option>
-                <option value="b_deficient">Boron deficient</option><option value="mn_deficient">Manganese deficient</option>
+                <option value="n_low" data-i="nutrient_n_low">Nitrogen low</option><option value="p_low" data-i="nutrient_p_low">Phosphorus low</option>
+                <option value="k_low" data-i="nutrient_k_low">Potassium low</option><option value="oc_low" data-i="nutrient_oc_low">Organic carbon low</option>
+                <option value="s_deficient" data-i="nutrient_s_deficient">Sulfur deficient</option><option value="fe_deficient" data-i="nutrient_fe_deficient">Iron deficient</option>
+                <option value="zn_deficient" data-i="nutrient_zn_deficient">Zinc deficient</option><option value="cu_deficient" data-i="nutrient_cu_deficient">Copper deficient</option>
+                <option value="b_deficient" data-i="nutrient_b_deficient">Boron deficient</option><option value="mn_deficient" data-i="nutrient_mn_deficient">Manganese deficient</option>
               </select>
-              <span class="farm-map-key"><i></i>Mapped farm areas</span>
-              <button id="soil-fields-toggle" type="button" aria-pressed="true">Hide field areas</button>
+              <span class="farm-map-key"><i></i><span data-i="map_farm_areas">Mapped farm areas</span></span>
+              <button id="soil-fields-toggle" type="button" aria-pressed="true" data-i="map_hide_fields">Hide field areas</button>
             </div>
           </div>
           <aside id="mapcard" class="card"></aside>
