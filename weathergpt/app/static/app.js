@@ -4,11 +4,11 @@ import * as maplibregl from "./vendor/maplibre-gl.mjs";
    Settings you may want to change
    ------------------------------------------------------------------ */
 // Boundary files for the map, inside app/static/. Add one line per state file.
-const MAP_FILES = ["data/bihar.geojson"];
+const MAP_FILES = [];
 // Property names that may hold the district name inside those files.
 const NAME_KEYS = ["district", "DISTRICT", "dtname", "DT_NAME", "NAME_2", "dist_name", "district_name", "name", "NAME"];
 
-const VIEWS = ["home", "chat", "crops", "soil", "map", "alerts"];
+const VIEWS = ["home", "chat", "crops", "soil", "nutrients", "map", "alerts"];
 
 /* ------------------------------------------------------------------
    Interface text. To add a language: copy the "en" block, translate it,
@@ -23,7 +23,7 @@ const T = {
     sendotp: "Send OTP", verify: "Verify and log in", name: "Name", state: "State", district: "District",
     crop_main: "Main crop", register_btn: "Create account",
     demo_otp: "Demo mode: tap to fill OTP {otp}", registered: "Account created. Now log in.",
-    nav_home: "Home", nav_chat: "Chat", nav_crops: "Crops", nav_soil: "Soil", nav_map: "Map", nav_alerts: "Alerts",
+    nav_home: "Home", nav_chat: "Chat", nav_crops: "Crops", nav_soil: "Soil", nav_nutrients: "Nutrients", nav_map: "Map", nav_alerts: "Alerts",
     logout: "Log out", hello: "Hello, {n}",
     weather_in: "Weather in {d}", humidity: "Humidity", wind: "Wind", rain24: "Rain, next 24 hours", rain_chance: "Chance of rain today", rain_hourly: "Rain chance by hour",
     rain5: "Rain, next 5 days", range5: "5-day range", demo_data: "Demo data",
@@ -130,6 +130,9 @@ let soilMap = null;
 let soilGeoJSON = null;
 let soilFieldsVisible = true;
 let soilMarker = null;
+let nutrientMapMarkers = [];
+let soilMapLoaded = false;
+let stateNutrientGeoJSON = null;
 
 function t(key, vars) {
   let s = localeOverrides[key] || (T[lang] && T[lang][key]) || T.en[key] || key;
@@ -347,6 +350,7 @@ async function chooseLocation(item) {
   message.textContent = "Location updated to " + [item.name, item.district, item.state, item.postal_code && "PIN " + item.postal_code].filter(Boolean).join(", ") + ".";
   if (view === "home") loadHome();
   else if (view === "soil") loadSoilFull();
+  else if (view === "nutrients") loadNutrientOutput();
   else if (view === "map") initMap();
 }
 
@@ -366,7 +370,7 @@ function enterApp() {
 }
 
 /* ------------------------------------------------------------------
-   Router (#home, #chat, #crops, #soil, #map, #alerts)
+   Router (#home, #chat, #crops, #soil, #nutrients, #map, #alerts)
    ------------------------------------------------------------------ */
 function route() {
   if (!me) return;
@@ -380,7 +384,7 @@ function show(v) {
   VIEWS.forEach(x => $("v-" + x).classList.toggle("hidden", x !== v));
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.view === v));
   $("title").textContent = v === "home" ? t("hello", { n: (me.name || "").split(" ")[0] }) : t("nav_" + v);
-  ({ home: loadHome, chat: loadChat, crops: () => {}, soil: loadSoilFull, map: initMap, alerts: loadAlerts })[v]();
+  ({ home: loadHome, chat: loadChat, crops: () => {}, soil: loadSoilFull, nutrients: loadNutrientOutput, map: initMap, alerts: loadAlerts })[v]();
   window.scrollTo(0, 0);
 }
 
@@ -989,9 +993,7 @@ const MAP_COLORS = { Good: "#2e7d4f", Moderate: "#e8a317", Poor: "#c23b2b" };
 const MAP_NONE = "#c5cec7";
 
 function mapIntro() {
-  return "<h3>" + esc(t("nav_soil")) + '</h3><p class="sub">' + esc(t("map_click")) + '</p><p class="sub">Agricultural outlines depend on areas mapped in OpenStreetMap and may be incomplete.</p><div class="legend">' +
-    ["Good", "Moderate", "Poor"].map(k => '<span><i style="background:' + MAP_COLORS[k] + '"></i>' + esc(tx("r_", k)) + "</span>").join("") +
-    '<span><i style="background:' + MAP_NONE + '"></i>' + esc(t("nodata")) + "</span></div>";
+  return '<h3>Soil Health Card map</h3><p class="sub">Select a nutrient above. Larger circles indicate higher reported counts. Click a state point for its nutrient breakdown.</p><p class="sub">Locations are approximate state/UT centers; this dataset does not include boundary polygons.</p>';
 }
 
 async function showMapCard(name) {
@@ -1004,27 +1006,27 @@ async function initMap() {
   if (!maplibregl.Map) { $("mapcard").innerHTML = '<p class="empty">' + esc(t("map_offline")) + "</p>"; return; }
   if (soilMap) {
     setTimeout(() => soilMap.resize(), 60);
-    if (hasSavedCoordinates(me)) {
-      soilMap.flyTo({ center: [Number(me.longitude), Number(me.latitude)], zoom: 15, pitch: 55, duration: 700 });
-      updateSoilMapMarker();
-    }
+    soilMap.flyTo({ center: [80, 22.5], zoom: 4.5, pitch: 0, duration: 500 });
+    updateSoilMapMarker();
     return;
   }
   $("mapcard").innerHTML = mapIntro();
   const hasProfilePoint = hasSavedCoordinates(me);
   soilMap = new maplibregl.Map({
     container: "map", style: "https://tiles.openfreemap.org/styles/bright",
-    center: hasProfilePoint ? [Number(me.longitude), Number(me.latitude)] : [80, 22.5],
-    zoom: hasProfilePoint ? 15 : 4.5, pitch: hasProfilePoint ? 55 : 48, bearing: -8,
+    center: [80, 22.5], zoom: 4.5, pitch: 0, bearing: 0,
     canvasContextAttributes: { antialias: true }
   });
   soilMap.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  $("nutrient-map-metric").addEventListener("change", updateNutrientMapStyle);
   soilMap.on("load", () => {
+    soilMapLoaded = true;
     addFarmLandLayer(soilMap, "soil");
     setFarmLandVisibility(soilMap, "soil", soilFieldsVisible);
     add3DBuildings(soilMap, "soil");
     if (soilGeoJSON) addSoilDistrictLayer(soilGeoJSON);
     updateSoilMapMarker();
+    if (stateNutrientGeoJSON) addNutrientMapLayer(stateNutrientGeoJSON);
   });
 
   const soil = await api("/soil");
@@ -1053,7 +1055,67 @@ async function initMap() {
   features.forEach(feature => extend(feature.geometry.coordinates));
   if (!bounds.isEmpty()) soilMap.fitBounds(bounds, { padding: 24, pitch: 48, duration: 0 });
   else if (hasProfilePoint) soilMap.easeTo({ center: [Number(me.longitude), Number(me.latitude)], zoom: 15, pitch: 55, duration: 0 });
+  const nutrientData = await api("/nutrients");
+  if (!nutrientData.ok) {
+    $("mapcard").innerHTML = mapIntro() + '<p class="empty">' + esc(nutrientData.data.error || "Nutrient map data could not be loaded.") + "</p>";
+  } else {
+    try {
+      const points = nutrientData.data.states.map(row => ({ type: "Feature", geometry: { type: "Point", coordinates: row.coordinates }, properties: row }));
+      stateNutrientGeoJSON = { type: "FeatureCollection", features: points };
+      if (soilMapLoaded) addNutrientMapLayer(stateNutrientGeoJSON);
+      if (bounds.isEmpty()) {
+        const stateBounds = new maplibregl.LngLatBounds();
+        points.forEach(point => stateBounds.extend(point.geometry.coordinates));
+        if (!stateBounds.isEmpty()) soilMap.fitBounds(stateBounds, { padding: 48, pitch: 0, duration: 0 });
+      }
+      if (!nutrientMapMarkers.length) $("mapcard").innerHTML = mapIntro() + '<p class="empty">State nutrient markers were not created.</p>';
+      else $("mapcard").innerHTML = mapIntro() + `<p class="sub">${nutrientMapMarkers.length} state/UT points loaded from the project workbook.</p>`;
+    } catch (error) {
+      console.error("Could not render state nutrient markers", error);
+      $("mapcard").innerHTML = mapIntro() + '<p class="empty">' + esc(error.message || "State nutrient markers could not be rendered.") + "</p>";
+    }
+  }
   setTimeout(() => soilMap.resize(), 60);
+}
+
+function updateNutrientMapStyle() {
+  if (!soilMap || !nutrientMapMarkers.length) return;
+  const metric = $("nutrient-map-metric").value;
+  nutrientMapMarkers.forEach(({ bubble, row }) => {
+    const size = Math.round(12 + Math.sqrt(Math.max(0, Number(row[metric]) || 0)) / 30);
+    bubble.style.width = size + "px";
+    bubble.style.height = size + "px";
+  });
+}
+
+function addNutrientMapLayer(data) {
+  if (!soilMapLoaded) return;
+  if (!soilMap || nutrientMapMarkers.length) return;
+  data.features.forEach(feature => {
+    const row = feature.properties;
+    const element = document.createElement("button");
+    element.type = "button";
+    element.className = "nutrient-map-marker";
+    element.title = `${row.state}: ${fmtCount(row.n_low)} low nitrogen samples`;
+    element.setAttribute("aria-label", `Open nutrient data for ${row.state}`);
+    const bubble = document.createElement("span");
+    bubble.className = "nutrient-map-bubble";
+    const label = document.createElement("span");
+    label.className = "nutrient-map-label";
+    label.textContent = row.state;
+    element.append(bubble, label);
+    element.addEventListener("click", event => {
+      event.stopPropagation();
+      showNutrientMapCard(row);
+    });
+    const marker = new maplibregl.Marker({ element, anchor: "center" }).setLngLat(row.coordinates).addTo(soilMap);
+    nutrientMapMarkers.push({ marker, bubble, row });
+  });
+  updateNutrientMapStyle();
+}
+
+function showNutrientMapCard(row) {
+  $("mapcard").innerHTML = `<h3>${esc(row.state)}</h3><p class="sub">${esc(row.scheme)} · ${esc(row.cycle)}; map point is an approximate state/UT center.</p>${nutrientGroupTable(row)}`;
 }
 
 function updateSoilMapMarker() {
@@ -1098,7 +1160,7 @@ function addSoilDistrictLayer(data) {
   });
   soilMap.on("mouseenter", "district-soil-fill", () => { soilMap.getCanvas().style.cursor = "pointer"; });
   soilMap.on("mouseleave", "district-soil-fill", () => { soilMap.getCanvas().style.cursor = ""; });
-  if (me.district) showMapCard(me.district);
+  if (me.district && data.features.length) showMapCard(me.district);
 }
 
 /* ------------------------------------------------------------------
@@ -1121,6 +1183,48 @@ async function checkAlertDot() {
   if (!r.ok || !r.data.length || view === "alerts") return;
   const seen = localStorage.getItem("alertsSeen") || "";
   $("alert-dot").classList.toggle("hidden", !(r.data[0].at + "Z" > seen));
+}
+
+/* ------------------------------------------------------------------
+   State level nutrient output from the supplied Soil Health Card files
+   ------------------------------------------------------------------ */
+const NUTRIENT_GROUPS = [
+  { label: "Nitrogen (N)", keys: ["n_high", "n_medium", "n_low"], names: ["High", "Medium", "Low"] },
+  { label: "Phosphorus (P)", keys: ["p_high", "p_medium", "p_low"], names: ["High", "Medium", "Low"] },
+  { label: "Potassium (K)", keys: ["k_high", "k_medium", "k_low"], names: ["High", "Medium", "Low"] },
+  { label: "Organic carbon (OC)", keys: ["oc_high", "oc_medium", "oc_low"], names: ["High", "Medium", "Low"] },
+  { label: "pH", keys: ["p_h_alkaline", "p_h_acidic", "p_h_neutral"], names: ["Alkaline", "Acidic", "Neutral"] },
+  { label: "Electrical conductivity (EC)", keys: ["ec_non_saline", "ec_saline"], names: ["Non-saline", "Saline"] },
+  ...[["Sulfur", "s"], ["Iron", "fe"], ["Zinc", "zn"], ["Copper", "cu"], ["Boron", "b"], ["Manganese", "mn"]]
+    .map(([label, key]) => ({ label, keys: [key + "_sufficient", key + "_deficient"], names: ["Sufficient", "Deficient"] }))
+];
+let selectedNutrientState = "BIHAR";
+
+function fmtCount(value) { return Number(value || 0).toLocaleString(); }
+function groupTotal(row, group) { return group.keys.reduce((sum, key) => sum + Number(row[key] || 0), 0); }
+function nutrientGroupTable(row) {
+  return NUTRIENT_GROUPS.map(group => {
+    const total = groupTotal(row, group);
+    const parts = group.keys.map((key, i) => `<span><b>${esc(group.names[i])}</b> ${fmtCount(row[key])}${total ? ` (${(100 * row[key] / total).toFixed(1)}%)` : ""}</span>`).join("");
+    return `<div class="nutrient-row"><b>${esc(group.label)}</b><div>${parts}</div></div>`;
+  }).join("");
+}
+
+async function loadNutrientOutput() {
+  const el = $("nutrient-output");
+  el.innerHTML = '<article class="card"><div class="skeleton"></div></article>';
+  const r = await api("/nutrients");
+  if (!r.ok) { el.innerHTML = '<article class="card"><p class="empty">' + esc(r.data.error || "Nutrient data unavailable") + "</p></article>"; return; }
+  const data = r.data, states = data.states || [];
+  const stateOptions = states.map(row => `<option value="${esc(row.state_key)}">${esc(row.state)}</option>`).join("");
+  const national = data.national_pdf || {};
+  const selected = states.find(row => row.state_key === selectedNutrientState) || states.find(row => row.state_key === "BIHAR") || states[0];
+  const detail = selected ? `<article class="card nutrient-detail"><div class="nutrient-heading"><div><h3>${esc(selected.state)}</h3><p class="sub">${esc(selected.scheme)} · ${esc(selected.cycle)}</p></div><select id="nutrient-state" aria-label="Choose state or union territory">${stateOptions}</select></div>${nutrientGroupTable(selected)}</article>` : "";
+  el.innerHTML = `<article class="card nutrient-overview"><div class="nutrient-heading"><div><h3>Soil Health Card nutrient dashboard</h3><p class="sub">${esc(data.source.scheme)} · Cycle ${esc(data.source.cycle)}</p></div><a class="link" href="/api/nutrients/download">Download project workbook</a></div><p class="sub">All-India figures from the supplied PDF dashboard</p><div class="nutrient-summary"><div><b>${fmtCount(national.n_high + national.n_medium + national.n_low)}</b><span>N sample records</span></div><div><b>${fmtCount(national.p_high + national.p_medium + national.p_low)}</b><span>P sample records</span></div><div><b>${fmtCount(national.k_high + national.k_medium + national.k_low)}</b><span>K sample records</span></div><div><b>${fmtCount(national.oc_high + national.oc_medium + national.oc_low)}</b><span>OC sample records</span></div></div>${nutrientGroupTable(national)}<p class="sub">State workbook coverage: ${states.length} rows. Those state counts are listed separately below and do not sum to the all-India PDF totals.</p></article>${detail}<article class="card nutrient-table-card"><h3>State and union territory workbook rows</h3><div class="nutrient-table-scroll"><table class="nutrient-table"><thead><tr><th>State / UT</th><th>N low</th><th>P low</th><th>K low</th><th>OC low</th><th>Fe deficient</th><th>Zn deficient</th></tr></thead><tbody>${states.map(row => `<tr data-state="${esc(row.state_key)}"><td>${esc(row.state)}</td><td>${fmtCount(row.n_low)}</td><td>${fmtCount(row.p_low)}</td><td>${fmtCount(row.k_low)}</td><td>${fmtCount(row.oc_low)}</td><td>${fmtCount(row.fe_deficient)}</td><td>${fmtCount(row.zn_deficient)}</td></tr>`).join("")}</tbody></table></div></article><p class="nutrient-source sub">Source: supplied Soil Health Card RKVY workbook and matching PDF dashboard. ${esc(data.source.note)}</p>`;
+  const picker = $("nutrient-state");
+  picker.value = selected.state_key;
+  picker.addEventListener("change", () => { selectedNutrientState = picker.value; loadNutrientOutput(); });
+  el.querySelectorAll("tr[data-state]").forEach(row => row.addEventListener("click", () => { selectedNutrientState = row.dataset.state; loadNutrientOutput(); }));
 }
 
 /* ------------------------------------------------------------------

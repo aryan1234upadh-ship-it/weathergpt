@@ -1,4 +1,4 @@
-const CACHE_NAME = "weathergpt-shell-v1";
+const CACHE_NAME = "weathergpt-shell-v5";
 const SHELL_FILES = [
   "/static/index.html",
   "/static/app.js",
